@@ -9,12 +9,16 @@ from app.db.seed import seed_database
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Démarrage : Création des tables et initialisation des données si nécessaire
-    Base.metadata.create_all(bind=engine)
+    # Démarrage : Tentative de synchronisation des tables et seed
     try:
-        seed_database()
-    except Exception as e:
-        print(f"Erreur d'initialisation seed: {e}")
+        Base.metadata.create_all(bind=engine)
+        try:
+            seed_database()
+        except Exception as seed_err:
+            print(f"[AVELOR BACKEND] Info seed: {seed_err}")
+    except Exception as db_err:
+        print(f"[AVELOR BACKEND] Avertissement connexion DB : {db_err}")
+        print("[AVELOR BACKEND] L'API FastAPI démarre en mode résilient. Assurez-vous de renseigner le mot de passe Supabase dans backend/.env")
     yield
 
 app = FastAPI(

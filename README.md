@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # AVELOR — Maison de Prêt-à-Porter & Haute Couture de Luxe au Maroc
 
 AVELOR est une plateforme e-commerce professionnelle haut de gamme dédiée à la vente de vêtements, chaussures, sacs et accessoires pour hommes et femmes au Maroc.
@@ -129,3 +130,7 @@ AVELOR/
 ├── .env.example
 └── README.md
 ```
+=======
+# AVELOR
+ une plateforme e-commerce professionnelle haut de gamme dédiée à la vente de vêtements, chaussures, sacs et accessoires pour hommes et femmes au Maroc.
+>>>>>>> c2363a280d9e1a6919c69bed93e97bbf8f212aa7
