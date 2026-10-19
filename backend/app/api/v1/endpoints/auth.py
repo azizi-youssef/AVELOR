@@ -1,22 +1,26 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
+import jwt as pyjwt
 
 from app.core.database import get_db
 from app.core.security import verify_password, get_password_hash, create_access_token
+from app.core.config import settings
+from app.core.limiter import limiter
 from app.api.deps import get_current_user
 from app.models.user import User, Address
 from app.models.enums import UserRole
 from app.schemas.user import (
     UserCreate, UserResponse, UserUpdate,
-    AddressCreate, AddressResponse, Token, LoginRequest
+    AddressCreate, AddressResponse, Token, LoginRequest, OAuthCallbackRequest
 )
 
 router = APIRouter()
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
-def register(user_in: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def register(request: Request, user_in: UserCreate, db: Session = Depends(get_db)):
     # Vérifier l'unicité de l'email
     existing_user = db.query(User).filter(User.email == user_in.email.lower()).first()
     if existing_user:
@@ -46,7 +50,8 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     }
 
 @router.post("/login", response_model=Token)
-def login(login_data: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(request: Request, login_data: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == login_data.email.lower()).first()
     if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(
@@ -67,7 +72,8 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     }
 
 @router.post("/login-form", response_model=Token)
-def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login_form(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == form_data.username.lower()).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -126,3 +132,51 @@ def add_address(
     db.commit()
     db.refresh(new_address)
     return new_address
+
+@router.post("/oauth-callback", response_model=Token)
+def oauth_callback(
+    data: OAuthCallbackRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Connexion ou inscription via un fournisseur OAuth (Google, Supabase, etc.)
+    Retrouve l'utilisateur par son email ou crée un nouveau compte avec les métadonnées fournies.
+    """
+    clean_email = data.email.lower().strip()
+    user = db.query(User).filter(User.email == clean_email).first()
+
+    if user:
+        if data.avatar_url and not user.avatar_url:
+            user.avatar_url = data.avatar_url
+        if data.provider and not user.oauth_provider:
+            user.oauth_provider = data.provider
+        if data.oauth_id and not user.oauth_id:
+            user.oauth_id = data.oauth_id
+        if data.first_name and not user.first_name:
+            user.first_name = data.first_name
+        if data.last_name and not user.last_name:
+            user.last_name = data.last_name
+        user.is_active = True
+        db.commit()
+        db.refresh(user)
+    else:
+        user = User(
+            email=clean_email,
+            first_name=data.first_name or "",
+            last_name=data.last_name or "",
+            avatar_url=data.avatar_url,
+            oauth_provider=data.provider,
+            oauth_id=data.oauth_id,
+            role=UserRole.CUSTOMER,
+            is_active=True
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    token = create_access_token(subject=user.id)
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": user
+    }

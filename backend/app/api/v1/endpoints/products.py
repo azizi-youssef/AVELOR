@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_, desc, asc
+from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy import or_, and_, desc, asc, func
 from typing import Optional, List
 from decimal import Decimal
 
@@ -91,10 +91,11 @@ def get_products(
         )
 
     # Tri
+    effective_price = func.coalesce(Product.discount_price, Product.base_price)
     if sort == "price_asc":
-        query = query.order_by(asc(Product.base_price))
+        query = query.order_by(asc(effective_price))
     elif sort == "price_desc":
-        query = query.order_by(desc(Product.base_price))
+        query = query.order_by(desc(effective_price))
     else:  # newest par défaut
         query = query.order_by(desc(Product.created_at))
 
@@ -103,8 +104,8 @@ def get_products(
 
     items = query.distinct().options(
         joinedload(Product.category),
-        joinedload(Product.images),
-        joinedload(Product.variants)
+        selectinload(Product.images),
+        selectinload(Product.variants)
     ).offset((page - 1) * page_size).limit(page_size).all()
 
     return {

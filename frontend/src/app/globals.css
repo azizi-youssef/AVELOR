@@ -1,36 +1,119 @@
 @import "tailwindcss";
 
-:root {
-  --font-serif: 'Cinzel', serif, Georgia;
-  --font-sans: 'Plus Jakarta Sans', 'Tajawal', sans-serif;
+/* -------------------------------------------------------------------------- */
+/*  Design tokens (Tailwind v4) — génère font-serif / font-sans / couleurs    */
+/* -------------------------------------------------------------------------- */
+@theme {
+  --font-serif: "Cinzel", Georgia, "Times New Roman", serif;
+  --font-sans: "Plus Jakarta Sans", "Tajawal", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-arabic: "Tajawal", "Plus Jakarta Sans", system-ui, sans-serif;
+
+  --color-ink: #171717;
+  --color-paper: #ffffff;
+
+  --ease-luxe: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Base                                                                      */
+/* -------------------------------------------------------------------------- */
+html {
+  scroll-behavior: smooth;
+  /* Évite le saut de mise en page quand le scroll est bloqué (menu mobile) */
+  scrollbar-gutter: stable;
+  /* Les ancres (#main-content, etc.) ne passent pas sous le header sticky */
+  scroll-padding-top: 6.5rem;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   font-family: var(--font-sans);
-  background-color: #FFFFFF;
-  color: #171717;
-  overflow-x: hidden;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  /* clip (et non hidden) : ne casse pas position: sticky du header */
+  overflow-x: clip;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-h1, h2, h3, .font-serif {
+h1,
+h2,
+h3,
+.font-serif {
   font-family: var(--font-serif);
 }
 
-/* RTL Helpers pour l'arabe */
-[dir="rtl"] {
-  font-family: 'Tajawal', sans-serif;
+::selection {
+  background-color: #171717;
+  color: #ffffff;
 }
 
-[dir="rtl"] h1, 
-[dir="rtl"] h2, 
-[dir="rtl"] h3 {
-  font-family: 'Tajawal', sans-serif;
+img,
+svg,
+video {
+  max-width: 100%;
+}
+
+/* Focus clavier visible et cohérent partout */
+:focus-visible {
+  outline: 2px solid #171717;
+  outline-offset: 3px;
+}
+
+footer :focus-visible,
+.on-dark :focus-visible {
+  outline-color: #ffffff;
+}
+
+/* Champs de recherche : retire la croix native WebKit */
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  RTL / Arabe                                                               */
+/* -------------------------------------------------------------------------- */
+[dir="rtl"] {
+  font-family: var(--font-arabic);
+}
+
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3,
+[dir="rtl"] .font-serif {
+  font-family: var(--font-arabic);
   font-weight: 700;
 }
 
-/* Micro-animations luxueuses */
+/* L'espacement entre lettres casse la liaison des lettres arabes */
+[dir="rtl"] *,
+[lang="ar"] * {
+  letter-spacing: 0 !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Animations                                                                */
+/* -------------------------------------------------------------------------- */
 .fade-in {
-  animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  animation: fadeIn 0.8s var(--ease-luxe) forwards;
+}
+
+.fade-in-delay-1 {
+  animation-delay: 0.1s;
+}
+
+.fade-in-delay-2 {
+  animation-delay: 0.2s;
+}
+
+.fade-in-delay-3 {
+  animation-delay: 0.3s;
 }
 
 @keyframes fadeIn {
@@ -38,8 +121,29 @@ h1, h2, h3, .font-serif {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Respect des préférences d'accessibilité */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .fade-in {
+    opacity: 1;
+    transform: none;
   }
 }

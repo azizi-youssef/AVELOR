@@ -1,8 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum as SQLEnum, Numeric
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from app.models.enums import GenderUniverse, InventoryReason
+
+def _utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class Product(Base):
     __tablename__ = "products"
@@ -16,20 +19,20 @@ class Product(Base):
     short_desc_ar = Column(Text, nullable=True)
     description_fr = Column(Text, nullable=True)
     description_ar = Column(Text, nullable=True)
-    
+
     # Prix en MAD (Dirhams marocains) avec Numeric(10, 2)
     base_price = Column(Numeric(10, 2), nullable=False)
     discount_price = Column(Numeric(10, 2), nullable=True)
-    
-    universe = Column(SQLEnum(GenderUniverse), nullable=False, index=True)
+
+    universe = Column(SQLEnum(GenderUniverse, name="gender_universe"), nullable=False, index=True)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False, index=True)
-    
+
     is_active = Column(Boolean, default=True, nullable=False, index=True)
     is_featured = Column(Boolean, default=False, nullable=False, index=True)
     is_new = Column(Boolean, default=True, nullable=False, index=True)
-    
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    created_at = Column(DateTime, default=_utcnow, nullable=False)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
 
     category = relationship("Category", back_populates="products")
     images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan", order_by="ProductImage.sort_order")
@@ -70,9 +73,9 @@ class InventoryMovement(Base):
     id = Column(Integer, primary_key=True, index=True)
     variant_id = Column(Integer, ForeignKey("product_variants.id"), nullable=False, index=True)
     quantity = Column(Integer, nullable=False)  # Positif pour restock, négatif pour vente
-    reason = Column(SQLEnum(InventoryReason), nullable=False)
+    reason = Column(SQLEnum(InventoryReason, name="inventory_reason"), nullable=False)
     order_id = Column(Integer, nullable=True)
     reference = Column(String(100), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)
 
     variant = relationship("ProductVariant", back_populates="inventory_movements")

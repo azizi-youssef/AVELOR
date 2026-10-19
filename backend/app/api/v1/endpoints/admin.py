@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from sqlalchemy.orm import Session, joinedload
@@ -215,6 +215,32 @@ def delete_product(
     db.commit()
     return {"message": "Produit archivé avec succès"}
 
+@router.put("/variants/{variant_id}/stock")
+def update_variant_stock(
+    variant_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_catalog_manager)
+):
+    variant = db.query(ProductVariant).filter(ProductVariant.id == variant_id).first()
+    if not variant:
+        raise HTTPException(status_code=404, detail="Variante non trouvée")
+    new_stock = data.get("stock")
+    if new_stock is None or int(new_stock) < 0:
+        raise HTTPException(status_code=400, detail="Stock invalide")
+    diff = int(new_stock) - variant.stock
+    variant.stock = int(new_stock)
+    inv = InventoryMovement(
+        variant_id=variant.id,
+        quantity_change=diff,
+        reason=InventoryReason.ADJUSTMENT,
+        reference_id=f"admin_{user.id}"
+    )
+    db.add(inv)
+    db.commit()
+    db.refresh(variant)
+    return {"message": "Stock mis à jour", "stock": variant.stock, "variant_id": variant.id}
+
 # ==========================================
 # 3. GESTION DES COMMANDES (ADMIN)
 # ==========================================
@@ -222,6 +248,8 @@ def delete_product(
 def get_admin_orders(
     status: Optional[OrderStatus] = None,
     search: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
     user: User = Depends(get_order_manager)
 ):
@@ -245,7 +273,7 @@ def get_admin_orders(
             )
         )
 
-    return query.order_by(Order.created_at.desc()).all()
+    return query.order_by(Order.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
 
 @router.put("/orders/{order_id}/status", response_model=OrderResponse)
 def update_order_status(
@@ -271,12 +299,12 @@ def update_order_status(
         if order.payment:
             order.payment.status = status_update.payment_status
             if status_update.payment_status == PaymentStatus.PAID:
-                order.payment.payment_date = datetime.utcnow()
+                order.payment.payment_date = datetime.now(timezone.utc)
 
     if status_update.tracking_number and order.shipment:
         order.shipment.tracking_number = status_update.tracking_number
         if not order.shipment.shipped_at:
-            order.shipment.shipped_at = datetime.utcnow()
+            order.shipment.shipped_at = datetime.now(timezone.utc)
 
     if status_update.admin_notes:
         order.admin_notes = f"{order.admin_notes or ''}\n{status_update.admin_notes}".strip()
@@ -384,6 +412,19 @@ def create_promotion(
     db.commit()
     db.refresh(promo)
     return promo
+
+@router.put("/promotions/{promo_id}/toggle")
+def toggle_promotion(
+    promo_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_catalog_manager)
+):
+    promo = db.query(Promotion).filter(Promotion.id == promo_id).first()
+    if not promo:
+        raise HTTPException(status_code=404, detail="Promotion non trouvée")
+    promo.is_active = not promo.is_active
+    db.commit()
+    return {"message": f"Promotion {'activée' if promo.is_active else 'désactivée'}", "is_active": promo.is_active}
 
 # ==========================================
 # 6. LOGS D'AUDIT SÉCURITÉ

@@ -1,8 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum as SQLEnum, Numeric
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from app.models.enums import OrderStatus, PaymentStatus, PaymentMethod
+
+def _utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class Order(Base):
     __tablename__ = "orders"
@@ -21,9 +24,9 @@ class Order(Base):
     delivery_notes = Column(Text, nullable=True)
 
     # Statuts
-    status = Column(SQLEnum(OrderStatus), default=OrderStatus.PENDING, nullable=False, index=True)
-    payment_status = Column(SQLEnum(PaymentStatus), default=PaymentStatus.PENDING, nullable=False, index=True)
-    payment_method = Column(SQLEnum(PaymentMethod), default=PaymentMethod.CASH_ON_DELIVERY, nullable=False)
+    status = Column(SQLEnum(OrderStatus, name="order_status"), default=OrderStatus.PENDING, nullable=False, index=True)
+    payment_status = Column(SQLEnum(PaymentStatus, name="payment_status"), default=PaymentStatus.PENDING, nullable=False, index=True)
+    payment_method = Column(SQLEnum(PaymentMethod, name="payment_method"), default=PaymentMethod.CASH_ON_DELIVERY, nullable=False)
 
     # Montants financiers en MAD
     subtotal = Column(Numeric(10, 2), nullable=False)
@@ -33,8 +36,8 @@ class Order(Base):
 
     # Traçabilité et administration
     admin_notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=_utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
 
     user = relationship("User", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
@@ -85,7 +88,7 @@ class Payment(Base):
     provider = Column(String(50), default="CASH_ON_DELIVERY", nullable=False)
     transaction_id = Column(String(100), nullable=True)
     amount = Column(Numeric(10, 2), nullable=False)
-    status = Column(SQLEnum(PaymentStatus), default=PaymentStatus.PENDING, nullable=False)
+    status = Column(SQLEnum(PaymentStatus, name="payment_status"), default=PaymentStatus.PENDING, nullable=False)
     payment_date = Column(DateTime, nullable=True)
     provider_payload = Column(Text, nullable=True) # Pour webhooks et logs sécurisés
 

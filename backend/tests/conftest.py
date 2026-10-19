@@ -11,7 +11,7 @@ from sqlalchemy.pool import StaticPool
 from app.core.database import Base, get_db
 from app.main import app
 
-# Base de données SQLite en mémoire pour tests isolés
+# Base de données de test en mémoire (isolée de Supabase)
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
 engine = create_engine(

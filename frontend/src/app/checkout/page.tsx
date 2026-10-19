@@ -1,14 +1,74 @@
+
 "use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  ChevronRight,
+  CreditCard,
+  LockKeyhole,
+  MapPin,
+  Package,
+  ShieldCheck,
+  ShoppingBag,
+  Truck,
+} from "lucide-react";
+
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
-import { ShieldCheck, Truck, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
+
+type PaymentMethod = "CASH_ON_DELIVERY" | "ONLINE_CARD";
+
+interface ConfirmedOrder {
+  order_number: string | number;
+  customer_name: string;
+  shipping_city: string;
+  total_amount: number | string;
+  payment_method?: PaymentMethod;
+}
+
+const inputClass =
+  "mt-2 w-full rounded-sm border border-[#DED9D0] bg-white px-4 py-3.5 text-sm text-[#171717] placeholder:text-[#A7A29A] outline-none transition-colors hover:border-[#B8AD9A] focus:border-[#A58B5B] focus:ring-2 focus:ring-[#A58B5B]/15 disabled:cursor-not-allowed disabled:bg-[#F3F1ED]";
+
+const labelClass =
+  "block text-[11px] font-semibold uppercase tracking-[0.13em] text-[#625D55]";
+
+const sectionClass =
+  "border-b border-[#E8E3DA] pb-8";
+
+function formatMAD(value: number | string, language: string) {
+  return `${Number(value || 0).toLocaleString(
+    language === "ar" ? "ar-MA" : "fr-MA",
+    { maximumFractionDigits: 2 }
+  )} MAD`;
+}
+
+function Field({
+  id,
+  label,
+  required,
+  children,
+}: {
+  id: string;
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className={labelClass}>
+        {label}
+        {required && <span className="ml-1 text-[#A58B5B]">*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
 
 export default function CheckoutPage() {
   const {
@@ -20,9 +80,9 @@ export default function CheckoutPage() {
     totalAmount,
     couponCode,
   } = useCart();
+
   const { language, direction, t } = useLanguage();
   const { user } = useAuth();
-  const router = useRouter();
 
   const [fullName, setFullName] = useState(
     user ? `${user.first_name || ""} ${user.last_name || ""}`.trim() : ""
@@ -33,27 +93,47 @@ export default function CheckoutPage() {
   const [city, setCity] = useState("Casablanca");
   const [postalCode, setPostalCode] = useState("");
   const [deliveryNotes, setDeliveryNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"CASH_ON_DELIVERY" | "ONLINE_CARD">(
-    "CASH_ON_DELIVERY"
-  );
+  const [paymentMethod, setPaymentMethod] =
+    useState<PaymentMethod>("CASH_ON_DELIVERY");
 
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [confirmedOrder, setConfirmedOrder] = useState<any | null>(null);
+  const [confirmedOrder, setConfirmedOrder] =
+    useState<ConfirmedOrder | null>(null);
 
-  const ArrowIcon = direction === "rtl" ? ArrowLeft : ArrowRight;
+  const isRTL = direction === "rtl";
+  const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
 
-  const handleSubmitOrder = async (e: React.FormEvent) => {
+  const inputId = (id: string) => `checkout-${id}`;
+
+  const handleSubmitOrder = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (submitting) return;
+
     setErrorMsg(null);
 
     if (!fullName.trim() || !phone.trim() || !streetAddress.trim() || !city.trim()) {
-      setErrorMsg("Veuillez renseigner tous les champs obligatoires (Nom, Téléphone, Adresse, Ville).");
+      setErrorMsg(
+        "Veuillez renseigner votre nom, votre téléphone, votre adresse et votre ville."
+      );
       return;
     }
 
     if (items.length === 0) {
-      setErrorMsg("Votre panier est vide.");
+      setErrorMsg("Votre panier est vide. Ajoutez des articles avant de continuer.");
+      return;
+    }
+
+    const normalizedPhone = phone.trim();
+
+    if (!/^[+\d\s().-]{8,20}$/.test(normalizedPhone)) {
+      setErrorMsg("Veuillez saisir un numéro de téléphone valide.");
+      return;
+    }
+
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setErrorMsg("Veuillez saisir une adresse e-mail valide.");
       return;
     }
 
@@ -62,7 +142,7 @@ export default function CheckoutPage() {
     try {
       const orderPayload = {
         customer_name: fullName.trim(),
-        customer_phone: phone.trim(),
+        customer_phone: normalizedPhone,
         customer_email: email.trim() || null,
         shipping_address: streetAddress.trim(),
         shipping_city: city.trim(),
@@ -70,348 +150,588 @@ export default function CheckoutPage() {
         delivery_notes: deliveryNotes.trim() || null,
         payment_method: paymentMethod,
         coupon_code: couponCode || null,
-        items: items.map((i) => ({
-          variant_id: i.variant.id,
-          quantity: i.quantity,
+        items: items.map((item) => ({
+          variant_id: item.variant.id,
+          quantity: item.quantity,
         })),
       };
 
-      const res = await api.createOrder(orderPayload);
+      const response = await api.createOrder(orderPayload);
+
+      // Do not empty the cart until the API confirms order creation.
+      setConfirmedOrder({
+        ...response,
+        payment_method: response.payment_method ?? paymentMethod,
+      });
+
       clearCart();
-      setConfirmedOrder(res);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Erreur lors de la validation de la commande.");
+    } catch (error: unknown) {
+      setErrorMsg(
+        error instanceof Error
+          ? error.message
+          : "Une erreur est survenue lors de la validation de votre commande."
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Écran de confirmation de commande
+  const paymentLabel =
+    confirmedOrder?.payment_method === "ONLINE_CARD"
+      ? "Paiement par carte"
+      : "Espèces à la livraison";
+
+  // Confirmation
   if (confirmedOrder) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-16 sm:py-24 text-center space-y-8 fade-in">
-        <div className="w-20 h-20 mx-auto rounded-full bg-neutral-900 text-white flex items-center justify-center">
-          <CheckCircle2 className="w-10 h-10 text-green-400 stroke-[1.5]" />
-        </div>
+      <main
+        dir={direction}
+        className="min-h-[70vh] bg-[#FAF9F6] px-4 py-14 sm:px-6 sm:py-20"
+      >
+        <div className="mx-auto max-w-2xl text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[#D7C7A8] bg-[#F1EBDD]">
+            <CheckCircle2 className="h-8 w-8 text-[#887044]" strokeWidth={1.5} />
+          </div>
 
-        <div className="space-y-3">
-          <span className="text-xs uppercase tracking-[0.25em] text-neutral-400 font-semibold block">
+          <p className="mt-7 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#9B8359]">
             {t.checkout.order_confirmed}
-          </span>
-          <h1 className="text-3xl sm:text-4xl font-serif font-light text-black">
-            Merci pour votre commande chez AVELOR
+          </p>
+
+          <h1 className="mt-3 font-serif text-3xl font-normal tracking-tight text-ink sm:text-4xl">
+            Merci pour votre confiance.
           </h1>
-          <p className="text-sm text-neutral-600 max-w-lg mx-auto">
+
+          <p className="mx-auto mt-4 max-w-md text-sm leading-7 text-[#716B62]">
             {t.checkout.confirmation_text}
           </p>
+
+          <div className="mt-9 border border-[#E8E3DA] bg-white p-5 text-left sm:p-8">
+            <div className="flex items-center justify-between gap-4 border-b border-[#E8E3DA] pb-5">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.15em] text-[#8A8378]">
+                  {t.checkout.order_number}
+                </p>
+                <p className="mt-1 font-mono text-sm font-semibold text-ink">
+                  {confirmedOrder.order_number}
+                </p>
+              </div>
+              <Package className="h-6 w-6 text-[#A58B5B]" strokeWidth={1.4} />
+            </div>
+
+            <div className="space-y-4 py-5 text-sm">
+              <div className="flex justify-between gap-4">
+                <span className="text-[#777168]">Destinataire</span>
+                <span className="text-right font-medium text-ink">
+                  {confirmedOrder.customer_name}
+                </span>
+              </div>
+
+              <div className="flex justify-between gap-4">
+                <span className="text-[#777168]">Ville de livraison</span>
+                <span className="text-right font-medium text-ink">
+                  {confirmedOrder.shipping_city}
+                </span>
+              </div>
+
+              <div className="flex justify-between gap-4">
+                <span className="text-[#777168]">Paiement</span>
+                <span className="text-right font-medium text-ink">
+                  {paymentLabel}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 border-t border-[#E8E3DA] pt-5">
+              <span className="text-xs uppercase tracking-wider text-[#625D55]">
+                Total de la commande
+              </span>
+              <span className="font-serif text-xl text-ink">
+                {formatMAD(confirmedOrder.total_amount, language)}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link
+              href="/"
+              className="inline-flex min-h-12 items-center justify-center gap-3 bg-ink px-8 text-xs font-semibold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#39352E] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#A58B5B]"
+            >
+              {t.checkout.back_home}
+              <ArrowIcon className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
-
-        {/* Carte de récapitulatif du reçu */}
-        <div className="bg-neutral-50 p-6 sm:p-8 border border-neutral-200 text-left space-y-4 max-w-md mx-auto text-xs">
-          <div className="flex justify-between border-b border-neutral-200 pb-2">
-            <span className="text-neutral-500">{t.checkout.order_number} :</span>
-            <span className="font-mono font-bold text-black">{confirmedOrder.order_number}</span>
-          </div>
-
-          <div className="flex justify-between border-b border-neutral-200 pb-2">
-            <span className="text-neutral-500">Destinataire :</span>
-            <span className="font-medium text-black">{confirmedOrder.customer_name}</span>
-          </div>
-
-          <div className="flex justify-between border-b border-neutral-200 pb-2">
-            <span className="text-neutral-500">Ville de livraison :</span>
-            <span className="font-medium text-black">{confirmedOrder.shipping_city}</span>
-          </div>
-
-          <div className="flex justify-between border-b border-neutral-200 pb-2">
-            <span className="text-neutral-500">Mode de paiement :</span>
-            <span className="font-medium text-black">Espèces à la livraison (COD)</span>
-          </div>
-
-          <div className="flex justify-between pt-2 text-sm font-serif font-bold text-black">
-            <span>Montant à régler au livreur :</span>
-            <span>{Number(confirmedOrder.total_amount).toLocaleString("fr-MA")} {t.product.mad}</span>
-          </div>
-        </div>
-
-        <div className="pt-4 flex justify-center gap-4">
-          <Link
-            href="/"
-            className="px-8 py-3.5 bg-black text-white text-xs font-semibold uppercase tracking-widest hover:bg-neutral-800 transition-colors"
-          >
-            {t.checkout.back_home}
-          </Link>
-        </div>
-      </div>
+      </main>
     );
   }
 
+  // Empty cart
   if (items.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-4">
-        <h2 className="text-xl font-serif">Votre panier est vide pour le moment.</h2>
-        <Link href="/" className="inline-block text-xs uppercase underline tracking-wider font-semibold">
-          Retour à la boutique
-        </Link>
-      </div>
+      <main
+        dir={direction}
+        className="flex min-h-[65vh] items-center justify-center bg-[#FAF9F6] px-4 py-16"
+      >
+        <div className="max-w-md text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[#E8E3DA] bg-white">
+            <ShoppingBag className="h-7 w-7 text-[#A58B5B]" strokeWidth={1.4} />
+          </div>
+
+          <h1 className="mt-6 font-serif text-2xl text-ink">
+            Votre panier est vide
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-[#777168]">
+            Découvrez notre collection et trouvez les pièces qui vous correspondent.
+          </p>
+
+          <Link
+            href="/"
+            className="mt-7 inline-flex min-h-12 items-center justify-center gap-3 bg-ink px-7 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-[#39352E]"
+          >
+            <ArrowIcon className="h-4 w-4" />
+            {t.checkout.back_home}
+          </Link>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-10">
-      <div className="border-b border-neutral-200 pb-4">
-        <h1 className="text-2xl sm:text-3xl font-serif font-light uppercase tracking-wider text-black">
-          {t.checkout.title}
-        </h1>
+    <main dir={direction} className="min-h-screen bg-[#FAF9F6] text-ink">
+      {/* Page heading */}
+      <div className="border-b border-[#E8E3DA] bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-[#777168] transition hover:text-ink"
+          >
+            {isRTL ? (
+              <ArrowRight className="h-3.5 w-3.5" />
+            ) : (
+              <ArrowLeft className="h-3.5 w-3.5" />
+            )}
+            Continuer mes achats
+          </Link>
+
+          <div className="mt-6 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#A58B5B]">
+                AVELOR · FINALISATION
+              </p>
+              <h1 className="mt-2 font-serif text-3xl font-normal tracking-tight sm:text-4xl">
+                {t.checkout.title}
+              </h1>
+              <p className="mt-3 max-w-lg text-sm leading-6 text-[#777168]">
+                Complétez vos informations pour finaliser votre commande en toute sérénité.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.12em] text-[#777168]">
+              <LockKeyhole className="h-4 w-4 text-[#A58B5B]" />
+              Commande sécurisée
+            </div>
+          </div>
+
+          {/* Progress indicator */}
+          <div className="mt-8 grid grid-cols-3 gap-3">
+            {[
+              { number: "01", label: "Coordonnées" },
+              { number: "02", label: "Livraison" },
+              { number: "03", label: "Paiement" },
+            ].map((step, index) => (
+              <div key={step.number}>
+                <div
+                  className={`h-0.5 ${index === 0 ? "bg-[#A58B5B]" : "bg-[#E8E3DA]"
+                    }`}
+                />
+                <p className="mt-2 text-[9px] uppercase tracking-widest text-[#777168] sm:text-[10px]">
+                  <span className="mr-1.5 font-semibold text-[#A58B5B]">
+                    {step.number}
+                  </span>
+                  {step.label}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {errorMsg && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-xs">
-          {errorMsg}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmitOrder} className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        {/* Colonne Formulaire (Coordonnées, Adresse, Paiement) */}
-        <div className="lg:col-span-2 space-y-10">
-          {/* 1. Coordonnées personnelles */}
-          <div className="space-y-4">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-black border-b border-neutral-200 pb-2">
-              {t.checkout.contact_info}
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div>
-                <label className="block text-neutral-600 mb-1 font-medium">
-                  {t.checkout.full_name} *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: Mehdi Bennani"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full bg-neutral-50 border border-neutral-300 px-3 py-2.5 focus:outline-none focus:border-black"
-                />
-              </div>
-
-              <div>
-                <label className="block text-neutral-600 mb-1 font-medium">
-                  {t.checkout.phone} *
-                </label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="Ex: 06 61 00 00 00"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-neutral-50 border border-neutral-300 px-3 py-2.5 focus:outline-none focus:border-black"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="block text-neutral-600 mb-1 font-medium">
-                  {t.checkout.email}
-                </label>
-                <input
-                  type="email"
-                  placeholder="contact@exemple.ma"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-neutral-50 border border-neutral-300 px-3 py-2.5 focus:outline-none focus:border-black"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* 2. Adresse de livraison au Maroc */}
-          <div className="space-y-4">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-black border-b border-neutral-200 pb-2">
-              {t.checkout.shipping_address}
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="sm:col-span-2">
-                <label className="block text-neutral-600 mb-1 font-medium">
-                  {t.checkout.address} *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Numéro, rue, quartier, étage..."
-                  value={streetAddress}
-                  onChange={(e) => setStreetAddress(e.target.value)}
-                  className="w-full bg-neutral-50 border border-neutral-300 px-3 py-2.5 focus:outline-none focus:border-black"
-                />
-              </div>
-
-              <div>
-                <label className="block text-neutral-600 mb-1 font-medium">
-                  {t.checkout.city} *
-                </label>
-                <select
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="w-full bg-neutral-50 border border-neutral-300 px-3 py-2.5 focus:outline-none focus:border-black"
-                >
-                  <option value="Casablanca">Casablanca</option>
-                  <option value="Rabat">Rabat</option>
-                  <option value="Marrakech">Marrakech</option>
-                  <option value="Tanger">Tanger</option>
-                  <option value="Fès">Fès</option>
-                  <option value="Agadir">Agadir</option>
-                  <option value="Meknès">Meknès</option>
-                  <option value="Oujda">Oujda</option>
-                  <option value="Kenitra">Kénitra</option>
-                  <option value="Tétouan">Tétouan</option>
-                  <option value="Autre ville">Autre ville du Maroc</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-neutral-600 mb-1 font-medium">
-                  {t.checkout.postal_code}
-                </label>
-                <input
-                  type="text"
-                  placeholder="20000"
-                  value={postalCode}
-                  onChange={(e) => setPostalCode(e.target.value)}
-                  className="w-full bg-neutral-50 border border-neutral-300 px-3 py-2.5 focus:outline-none focus:border-black"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="block text-neutral-600 mb-1 font-medium">
-                  {t.checkout.notes}
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Exemple : Sonner à la porte 4B, appeler avant le passage..."
-                  value={deliveryNotes}
-                  onChange={(e) => setDeliveryNotes(e.target.value)}
-                  className="w-full bg-neutral-50 border border-neutral-300 px-3 py-2.5 focus:outline-none focus:border-black"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* 3. Moyen de Paiement */}
-          <div className="space-y-4">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-black border-b border-neutral-200 pb-2">
-              {t.checkout.payment_method}
-            </h2>
-            <div className="space-y-3">
-              <label className="flex items-start gap-3 p-4 border border-black bg-neutral-50 cursor-pointer">
-                <input
-                  type="radio"
-                  name="payment_method"
-                  value="CASH_ON_DELIVERY"
-                  checked={paymentMethod === "CASH_ON_DELIVERY"}
-                  onChange={() => setPaymentMethod("CASH_ON_DELIVERY")}
-                  className="mt-1 text-black focus:ring-black"
-                />
-                <div>
-                  <span className="text-xs font-bold text-black block">
-                    {t.checkout.cod}
-                  </span>
-                  <span className="text-[11px] text-neutral-500 block mt-0.5">
-                    {t.checkout.cod_desc}
-                  </span>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-3 p-4 border border-neutral-200 bg-white opacity-60 cursor-not-allowed">
-                <input
-                  type="radio"
-                  name="payment_method"
-                  disabled
-                  value="ONLINE_CARD"
-                  className="mt-1 text-neutral-400"
-                />
-                <div>
-                  <span className="text-xs font-semibold text-neutral-700 block">
-                    {t.checkout.card}
-                  </span>
-                  <span className="text-[11px] text-neutral-400 block mt-0.5">
-                    Paiement sécurisé CMI en cours d'agrément bancaire au Maroc.
-                  </span>
-                </div>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* Colonne Récapitulatif Articles & Total */}
-        <div className="bg-neutral-50 p-6 sm:p-8 space-y-6 border border-neutral-200 h-fit">
-          <h2 className="text-base font-serif font-light uppercase tracking-wider text-black border-b border-neutral-200 pb-3">
-            Articles de la commande
-          </h2>
-
-          <div className="space-y-4 max-h-80 overflow-y-auto pr-1">
-            {items.map((i) => {
-              const name = language === "ar" ? i.product.name_ar : i.product.name_fr;
-              const price = i.product.discount_price
-                ? Number(i.product.discount_price)
-                : Number(i.product.base_price);
-              return (
-                <div key={i.variant.id} className="flex justify-between gap-3 text-xs">
-                  <div>
-                    <span className="font-medium text-black block truncate max-w-[180px]">
-                      {name}
-                    </span>
-                    <span className="text-[11px] text-neutral-500">
-                      Taille: {i.variant.size} &bull; Qté: {i.quantity}
-                    </span>
-                  </div>
-                  <span className="font-semibold text-black flex-shrink-0">
-                    {(price * i.quantity).toLocaleString("fr-MA")} {t.product.mad}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="space-y-3 pt-4 border-t border-neutral-200 text-xs">
-            <div className="flex justify-between text-neutral-600">
-              <span>{t.cart.subtotal}</span>
-              <span className="font-medium text-black">
-                {subtotal.toLocaleString("fr-MA")} {t.product.mad}
-              </span>
-            </div>
-
-            {discountAmount > 0 && (
-              <div className="flex justify-between text-green-700 font-medium">
-                <span>{t.cart.discount} ({couponCode})</span>
-                <span>-{discountAmount.toLocaleString("fr-MA")} {t.product.mad}</span>
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+        <form
+          onSubmit={handleSubmitOrder}
+          aria-busy={submitting}
+          className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_390px] lg:gap-12"
+        >
+          {/* Customer form */}
+          <div className="min-w-0 space-y-8 sm:space-y-10">
+            {errorMsg && (
+              <div
+                role="alert"
+                aria-live="assertive"
+                className="flex items-start gap-3 border border-[#E8C5C0] bg-[#FFF7F5] p-4 text-sm text-[#9F332B]"
+              >
+                <span className="font-semibold">!</span>
+                <p>{errorMsg}</p>
               </div>
             )}
 
-            <div className="flex justify-between text-neutral-600">
-              <span>{t.cart.shipping}</span>
-              <span>
-                {shippingFee === 0 ? (
-                  <span className="text-green-700 font-semibold">{t.cart.shipping_free}</span>
-                ) : (
-                  `${shippingFee.toLocaleString("fr-MA")} ${t.product.mad}`
-                )}
-              </span>
-            </div>
+            {/* 01 Contact */}
+            <section className={sectionClass}>
+              <div className="mb-6 flex items-start gap-4">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-[#DCCEB5] text-xs font-medium text-[#967B4D]">
+                  01
+                </span>
+                <div>
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.13em]">
+                    {t.checkout.contact_info}
+                  </h2>
+                  <p className="mt-1.5 text-xs leading-5 text-[#777168]">
+                    Vos coordonnées pour le suivi de votre commande.
+                  </p>
+                </div>
+              </div>
 
-            <div className="flex justify-between text-base font-serif font-medium text-black pt-4 border-t border-neutral-200">
-              <span>{t.cart.total}</span>
-              <span>{totalAmount.toLocaleString("fr-MA")} {t.product.mad}</span>
-            </div>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <Field id={inputId("name")} label={t.checkout.full_name} required>
+                  <input
+                    id={inputId("name")}
+                    name="name"
+                    autoComplete="name"
+                    required
+                    maxLength={120}
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Ex. : Mehdi Bennani"
+                    className={inputClass}
+                  />
+                </Field>
+
+                <Field id={inputId("phone")} label={t.checkout.phone} required>
+                  <input
+                    id={inputId("phone")}
+                    name="phone"
+                    type="tel"
+                    autoComplete="tel"
+                    inputMode="tel"
+                    required
+                    maxLength={20}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="Ex. : 06 61 00 00 00"
+                    className={inputClass}
+                  />
+                </Field>
+
+                <div className="sm:col-span-2">
+                  <Field id={inputId("email")} label={t.checkout.email}>
+                    <input
+                      id={inputId("email")}
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      maxLength={254}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="vous@exemple.ma"
+                      className={inputClass}
+                    />
+                  </Field>
+                </div>
+              </div>
+            </section>
+
+            {/* 02 Shipping */}
+            <section className={sectionClass}>
+              <div className="mb-6 flex items-start gap-4">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-[#DCCEB5] text-xs font-medium text-[#967B4D]">
+                  02
+                </span>
+                <div>
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.13em]">
+                    {t.checkout.shipping_address}
+                  </h2>
+                  <p className="mt-1.5 text-xs leading-5 text-[#777168]">
+                    Indiquez l'adresse à laquelle recevoir votre commande.
+                  </p>
+                </div>
+                <MapPin className="ml-auto h-5 w-5 shrink-0 text-[#A58B5B]" strokeWidth={1.4} />
+              </div>
+
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <Field id={inputId("address")} label={t.checkout.address} required>
+                    <input
+                      id={inputId("address")}
+                      name="street-address"
+                      autoComplete="street-address"
+                      required
+                      maxLength={250}
+                      value={streetAddress}
+                      onChange={(e) => setStreetAddress(e.target.value)}
+                      placeholder="Rue, quartier, numéro, étage..."
+                      className={inputClass}
+                    />
+                  </Field>
+                </div>
+
+                <Field id={inputId("city")} label={t.checkout.city} required>
+                  <select
+                    id={inputId("city")}
+                    name="city"
+                    autoComplete="address-level2"
+                    required
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="Casablanca">Casablanca</option>
+                    <option value="Rabat">Rabat</option>
+                    <option value="Marrakech">Marrakech</option>
+                    <option value="Tanger">Tanger</option>
+                    <option value="Fès">Fès</option>
+                    <option value="Agadir">Agadir</option>
+                    <option value="Meknès">Meknès</option>
+                    <option value="Oujda">Oujda</option>
+                    <option value="Kénitra">Kénitra</option>
+                    <option value="Tétouan">Tétouan</option>
+                    <option value="Nador">Nador</option>
+                    <option value="Autre ville">Autre ville du Maroc</option>
+                  </select>
+                </Field>
+
+                <Field id={inputId("postal")} label={t.checkout.postal_code}>
+                  <input
+                    id={inputId("postal")}
+                    name="postal-code"
+                    autoComplete="postal-code"
+                    inputMode="numeric"
+                    maxLength={12}
+                    value={postalCode}
+                    onChange={(e) => setPostalCode(e.target.value)}
+                    placeholder="Ex. : 20000"
+                    className={inputClass}
+                  />
+                </Field>
+
+                <div className="sm:col-span-2">
+                  <Field id={inputId("notes")} label={t.checkout.notes}>
+                    <textarea
+                      id={inputId("notes")}
+                      name="delivery-notes"
+                      rows={3}
+                      maxLength={500}
+                      value={deliveryNotes}
+                      onChange={(e) => setDeliveryNotes(e.target.value)}
+                      placeholder="Instructions utiles pour la livraison..."
+                      className={`${inputClass} resize-y`}
+                    />
+                  </Field>
+                </div>
+              </div>
+            </section>
+
+            {/* 03 Payment */}
+            <section>
+              <div className="mb-6 flex items-start gap-4">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-[#DCCEB5] text-xs font-medium text-[#967B4D]">
+                  03
+                </span>
+                <div>
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.13em]">
+                    {t.checkout.payment_method}
+                  </h2>
+                  <p className="mt-1.5 text-xs leading-5 text-[#777168]">
+                    Choisissez le mode de règlement disponible.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label
+                  className={`flex cursor-pointer items-start gap-4 border bg-white p-4 transition-colors sm:p-5 ${paymentMethod === "CASH_ON_DELIVERY"
+                      ? "border-[#A58B5B] ring-1 ring-[#A58B5B]/15"
+                      : "border-[#E8E3DA] hover:border-[#B8AD9A]"
+                    }`}
+                >
+                  <input
+                    type="radio"
+                    name="payment_method"
+                    value="CASH_ON_DELIVERY"
+                    checked={paymentMethod === "CASH_ON_DELIVERY"}
+                    onChange={() => setPaymentMethod("CASH_ON_DELIVERY")}
+                    className="mt-1 h-4 w-4 accent-[#A58B5B]"
+                  />
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center bg-[#F5F1E8]">
+                    <Truck className="h-5 w-5 text-[#92784C]" strokeWidth={1.5} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-xs font-semibold uppercase tracking-wider">
+                      {t.checkout.cod}
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-[#777168]">
+                      {t.checkout.cod_desc}
+                    </span>
+                  </span>
+                  {paymentMethod === "CASH_ON_DELIVERY" && (
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-[#A58B5B]" />
+                  )}
+                </label>
+
+                <div className="flex items-start gap-4 border border-dashed border-[#DDD7CD] bg-[#F5F3EF] p-4 opacity-75 sm:p-5">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center bg-white">
+                    <CreditCard className="h-5 w-5 text-[#777168]" strokeWidth={1.5} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold uppercase tracking-wider">
+                      {t.checkout.card}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-[#777168]">
+                      Paiement par carte indisponible pour le moment.
+                    </p>
+                  </div>
+                  <span className="shrink-0 border border-[#DDD7CD] px-2 py-1 text-[9px] uppercase tracking-wider text-[#777168]">
+                    Bientôt
+                  </span>
+                </div>
+              </div>
+            </section>
           </div>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full py-4 bg-black text-white text-xs font-semibold uppercase tracking-[0.2em] hover:bg-neutral-800 disabled:bg-neutral-400 transition-colors flex items-center justify-center gap-2"
-          >
-            <span>{submitting ? t.checkout.processing : t.checkout.place_order}</span>
-            <ArrowIcon className="w-4 h-4" />
-          </button>
-        </div>
-      </form>
-    </div>
+          {/* Order summary */}
+          <aside className="lg:sticky lg:top-6">
+            <div className="border border-[#E4DED3] bg-white">
+              <div className="flex items-center justify-between border-b border-[#E8E3DA] px-5 py-5 sm:px-6">
+                <div>
+                  <h2 className="font-serif text-xl">
+                    Récapitulatif
+                  </h2>
+                  <p className="mt-1 text-[11px] text-[#777168]">
+                    {items.length} article(s) dans votre panier
+                  </p>
+                </div>
+                <ShoppingBag className="h-5 w-5 text-[#A58B5B]" strokeWidth={1.4} />
+              </div>
+
+              <div className="max-h-90 space-y-5 overflow-y-auto px-5 py-5 sm:px-6">
+                {items.map((item) => {
+                  const name =
+                    language === "ar"
+                      ? item.product.name_ar
+                      : item.product.name_fr;
+
+                  const unitPrice = Number(
+                    item.product.discount_price ?? item.product.base_price
+                  );
+
+                  return (
+                    <div
+                      key={item.variant.id}
+                      className="flex items-start justify-between gap-4"
+                    >
+                      <div className="min-w-0">
+                        <p className="wrap-break-word text-sm font-medium leading-5 text-[#25221D]">
+                          {name}
+                        </p>
+                        <p className="mt-1 text-[11px] text-[#8A8378]">
+                          Taille : {item.variant.size} · Qté : {item.quantity}
+                        </p>
+                        <p className="mt-1 text-xs text-[#777168]">
+                          {formatMAD(unitPrice, language)} / unité
+                        </p>
+                      </div>
+                      <p className="shrink-0 text-sm font-medium tabular-nums">
+                        {formatMAD(unitPrice * item.quantity, language)}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="border-t border-[#E8E3DA] px-5 py-5 sm:px-6">
+                <div className="space-y-4 text-xs">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[#777168]">{t.cart.subtotal}</span>
+                    <span className="font-medium tabular-nums">
+                      {formatMAD(subtotal, language)}
+                    </span>
+                  </div>
+
+                  {discountAmount > 0 && (
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="text-[#55765A]">
+                        {t.cart.discount}
+                        {couponCode ? ` (${couponCode})` : ""}
+                      </span>
+                      <span className="font-medium tabular-nums text-[#55765A]">
+                        −{formatMAD(discountAmount, language)}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[#777168]">{t.cart.shipping}</span>
+                    {shippingFee === 0 ? (
+                      <span className="font-semibold uppercase tracking-wide text-[#55765A]">
+                        {t.cart.shipping_free}
+                      </span>
+                    ) : (
+                      <span className="font-medium tabular-nums">
+                        {formatMAD(shippingFee, language)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-5 border-t border-[#E8E3DA] pt-5">
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-[#777168]">
+                        {t.cart.total}
+                      </p>
+                      <p className="mt-1 text-[10px] text-[#8A8378]">
+                        Taxes incluses si applicables
+                      </p>
+                    </div>
+                    <p className="font-serif text-2xl tabular-nums text-ink">
+                      {formatMAD(totalAmount, language)}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submitting || items.length === 0}
+                  className="mt-6 flex min-h-14 w-full items-center justify-center gap-3 bg-ink px-5 text-xs font-semibold uppercase tracking-[0.15em] text-white transition-colors hover:bg-[#38332B] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#A58B5B] disabled:cursor-not-allowed disabled:bg-[#A7A29A]"
+                >
+                  {submitting ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" />
+                      {t.checkout.processing}
+                    </>
+                  ) : (
+                    <>
+                      {t.checkout.place_order}
+                      <ArrowIcon className="h-4 w-4" />
+                    </>
+                  )}
+                </button>
+
+                <div className="mt-4 flex items-start gap-2.5 border-t border-[#E8E3DA] pt-4">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#A58B5B]" strokeWidth={1.5} />
+                  <p className="text-[10px] leading-5 text-[#777168]">
+                    Vos informations sont utilisées pour traiter votre commande.
+                    Le paiement par carte reste désactivé tant qu'il n'est pas intégré.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p className="mt-4 text-center text-[10px] leading-5 text-[#8A8378]">
+              Besoin d'aide ? Consultez les informations de votre boutique.
+            </p>
+          </aside>
+        </form>
+      </div>
+    </main>
   );
 }

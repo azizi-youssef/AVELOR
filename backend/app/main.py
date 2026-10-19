@@ -2,23 +2,26 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.core.database import Base, engine
+from app.core.limiter import limiter
 from app.api.v1.api import api_router
 from app.db.seed import seed_database
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Démarrage : Tentative de synchronisation des tables et seed
+    # Démarrage : Création des tables et initialisation des données si nécessaire
     try:
         Base.metadata.create_all(bind=engine)
         try:
             seed_database()
-        except Exception as seed_err:
-            print(f"[AVELOR BACKEND] Info seed: {seed_err}")
-    except Exception as db_err:
-        print(f"[AVELOR BACKEND] Avertissement connexion DB : {db_err}")
-        print("[AVELOR BACKEND] L'API FastAPI démarre en mode résilient. Assurez-vous de renseigner le mot de passe Supabase dans backend/.env")
+        except Exception as e:
+            print(f"Erreur d'initialisation seed: {e}")
+    except Exception as e:
+        print(f"[AVELOR DB WARNING] Connexion impossible a la base de donnees au demarrage: {e}")
+        print("[AVELOR DB INFO] Verifiez votre DATABASE_URL dans backend/.env (mot de passe Supabase ou PostgreSQL local).")
     yield
 
 app = FastAPI(
@@ -30,6 +33,9 @@ app = FastAPI(
     redoc_url=f"{settings.API_V1_STR}/redoc",
     lifespan=lifespan
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Configuration CORS
 app.add_middleware(

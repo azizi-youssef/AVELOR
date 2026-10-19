@@ -1,6 +1,5 @@
-from typing import List, Optional
+from typing import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import AnyHttpUrl, field_validator
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -16,13 +15,8 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
-    # Base de Données Supabase (PostgreSQL)
+    # Base de Données (PostgreSQL)
     DATABASE_URL: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/postgres"
-    SUPABASE_URL: Optional[str] = None
-    SUPABASE_ANON_KEY: Optional[str] = None
-    SUPABASE_SERVICE_ROLE_KEY: Optional[str] = None
-    NEXT_PUBLIC_SUPABASE_URL: Optional[str] = None
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: Optional[str] = None
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = [
@@ -40,6 +34,12 @@ class Settings(BaseSettings):
     # Initial Admin Setup
     FIRST_SUPERUSER_EMAIL: str = "admin@avelor.ma"
     FIRST_SUPERUSER_PASSWORD: str = "AdminAvelor2026!"
+
+    # Supabase OAuth
+    SUPABASE_URL: str = ""
+    SUPABASE_ANON_KEY: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
+    SUPABASE_JWT_SECRET: str = ""  # Settings > API > JWT Secret
 
 settings = Settings()
 

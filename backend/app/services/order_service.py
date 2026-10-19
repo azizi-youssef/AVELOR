@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 from fastapi import HTTPException, status
@@ -15,7 +15,7 @@ from app.services.promotion_service import PromotionService
 class OrderService:
     @staticmethod
     def generate_order_number() -> str:
-        date_str = datetime.utcnow().strftime("%Y%m")
+        date_str = datetime.now(timezone.utc).strftime("%Y%m")
         unique_suffix = uuid.uuid4().hex[:6].upper()
         return f"AV-{date_str}-{unique_suffix}"
 
@@ -44,7 +44,7 @@ class OrderService:
             variant = db.query(ProductVariant).filter(
                 ProductVariant.id == item.variant_id,
                 ProductVariant.is_active == True
-            ).with_for_update().first()
+            ).first()
 
             if not variant:
                 raise HTTPException(

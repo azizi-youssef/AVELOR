@@ -1,8 +1,17 @@
-from pydantic import BaseModel, Field, EmailStr
+import re
+from pydantic import BaseModel, Field, EmailStr, field_validator
 from typing import Optional, List
 from decimal import Decimal
 from datetime import datetime
 from app.models.enums import OrderStatus, PaymentStatus, PaymentMethod
+
+MOROCCAN_PHONE_REGEX = re.compile(r"^(\+212|0)(5|6|7)\d{8}$")
+
+def _validate_moroccan_phone(v: str) -> str:
+    cleaned = re.sub(r"[\s\-\.]", "", str(v).strip())
+    if not MOROCCAN_PHONE_REGEX.match(cleaned):
+        raise ValueError("Numéro de téléphone marocain invalide (ex: +212612345678 ou 0612345678)")
+    return cleaned
 
 class OrderItemCreate(BaseModel):
     variant_id: int
@@ -40,6 +49,11 @@ class OrderCreate(BaseModel):
     
     # Items
     items: List[OrderItemCreate]
+
+    @field_validator("customer_phone")
+    @classmethod
+    def check_phone(cls, v: str) -> str:
+        return _validate_moroccan_phone(v)
 
 class ShipmentResponse(BaseModel):
     carrier_name: str

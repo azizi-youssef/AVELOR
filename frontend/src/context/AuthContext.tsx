@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User } from "@/types";
 import { api } from "@/lib/api";
+import { signInWithProvider, signOutSupabase } from "@/lib/supabase";
 
 interface AuthContextType {
   user: User | null;
@@ -10,6 +11,8 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: any) => Promise<void>;
+  loginWithOAuth: (provider: "google" | "github") => Promise<void>;
+  setAuthSession: (token: string, user: User) => void;
   logout: () => void;
   isAdmin: boolean;
 }
@@ -42,24 +45,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const setAuthSession = (newToken: string, newUser: User) => {
+    localStorage.setItem("avelor_token", newToken);
+    setToken(newToken);
+    setUser(newUser);
+  };
+
   const login = async (email: string, password: string) => {
     const res = await api.login({ email, password });
-    localStorage.setItem("avelor_token", res.access_token);
-    setToken(res.access_token);
-    setUser(res.user);
+    setAuthSession(res.access_token, res.user);
   };
 
   const register = async (data: any) => {
     const res = await api.register(data);
-    localStorage.setItem("avelor_token", res.access_token);
-    setToken(res.access_token);
-    setUser(res.user);
+    setAuthSession(res.access_token, res.user);
+  };
+
+  const loginWithOAuth = async (provider: "google" | "github") => {
+    await signInWithProvider(provider);
   };
 
   const logout = () => {
     localStorage.removeItem("avelor_token");
     setToken(null);
     setUser(null);
+    signOutSupabase().catch(() => {});
   };
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "CATALOG_MANAGER" || user?.role === "ORDER_MANAGER";
@@ -72,6 +82,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         login,
         register,
+        loginWithOAuth,
+        setAuthSession,
         logout,
         isAdmin,
       }}

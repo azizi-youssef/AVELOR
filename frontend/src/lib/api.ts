@@ -108,6 +108,20 @@ export const api = {
     });
   },
 
+  oauthCallback: (data: {
+    provider: string;
+    email: string;
+    first_name?: string;
+    last_name?: string;
+    avatar_url?: string;
+    oauth_id?: string;
+  }) => {
+    return fetchApi<{ access_token: string; token_type: string; user: any }>("/auth/oauth-callback", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
   getMe: () => fetchApi<any>("/auth/me"),
 
   // Administration
@@ -154,11 +168,22 @@ export const api = {
       method: "DELETE",
     });
   },
+  updateVariantStock: (variantId: number, stock: number) => {
+    return fetchApi<any>(`/admin/variants/${variantId}/stock`, {
+      method: "PUT",
+      body: JSON.stringify({ stock }),
+    });
+  },
   getAdminPromotions: () => fetchApi<any[]>("/admin/promotions"),
   createPromotion: (data: any) => {
     return fetchApi<any>("/admin/promotions", {
       method: "POST",
       body: JSON.stringify(data),
+    });
+  },
+  togglePromotion: (id: number) => {
+    return fetchApi<any>(`/admin/promotions/${id}/toggle`, {
+      method: "PUT",
     });
   },
   getAuditLogs: () => fetchApi<any[]>("/admin/audit-logs"),

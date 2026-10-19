@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional, Tuple
 from sqlalchemy.orm import Session
@@ -28,12 +28,16 @@ class PromotionService:
         if not promo:
             return False, "Code promotionnel invalide ou inexistant", Decimal("0.00"), None
 
-        now = datetime.utcnow()
-        if promo.starts_at and now < promo.starts_at:
-            return False, "Ce code promo n'est pas encore actif", Decimal("0.00"), None
+        now = datetime.now(timezone.utc)
+        if promo.starts_at:
+            starts = promo.starts_at if promo.starts_at.tzinfo else promo.starts_at.replace(tzinfo=timezone.utc)
+            if now < starts:
+                return False, "Ce code promo n'est pas encore actif", Decimal("0.00"), None
 
-        if promo.expires_at and now > promo.expires_at:
-            return False, "Ce code promo a expiré", Decimal("0.00"), None
+        if promo.expires_at:
+            expires = promo.expires_at if promo.expires_at.tzinfo else promo.expires_at.replace(tzinfo=timezone.utc)
+            if now > expires:
+                return False, "Ce code promo a expiré", Decimal("0.00"), None
 
         if promo.max_uses and promo.current_uses >= promo.max_uses:
             return False, "Ce code promo a atteint sa limite d'utilisation", Decimal("0.00"), None

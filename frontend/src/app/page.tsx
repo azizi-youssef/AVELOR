@@ -7,238 +7,336 @@ import { useLanguage } from "@/context/LanguageContext";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Product, Campaign } from "@/types";
 import { api } from "@/lib/api";
+import { ArrowRight, Sparkles, ArrowLeft, ArrowUpRight, Truck, ShieldCheck, Gem } from "lucide-react";
+import { LuxuryFadeIn, LuxuryStagger, LuxuryStaggerItem, LuxuryScaleHover, motion } from "@/components/ui/motion";
 import { initialProducts, initialCampaigns } from "@/lib/mock-data";
-import { ArrowRight, Sparkles, ArrowLeft } from "lucide-react";
 
 export default function HomePage() {
   const { language, direction, t } = useLanguage();
+  const isArabic = language === "ar";
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>(initialProducts);
   const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const ArrowIcon = direction === "rtl" ? ArrowLeft : ArrowRight;
 
   useEffect(() => {
+    let active = true;
+
     async function loadHomeData() {
       try {
         const [prodRes, campRes] = await Promise.all([
           api.getProducts({ is_featured: true, page_size: 8 }),
           api.getCampaigns(),
         ]);
-        if (prodRes && prodRes.items && prodRes.items.length > 0) {
-          setFeaturedProducts(prodRes.items);
-        }
-        if (campRes && campRes.length > 0) {
-          setCampaigns(campRes);
-        }
-      } catch (err) {
-        // En cas d'attente de connexion DB, les collections par défaut restent affichées
+
+        if (!active) return;
+        if (prodRes?.items) setFeaturedProducts(prodRes.items);
+        if (campRes) setCampaigns(campRes);
+      } catch (error) {
+        // Keep the currently available content if the API is temporarily unavailable.
+        console.error("Unable to load homepage content:", error);
+      } finally {
+        if (active) setLoading(false);
       }
     }
+
     loadHomeData();
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const heroCampaign = campaigns.length > 0 ? campaigns[0] : null;
+  const heroCampaign = campaigns[0] ?? null;
+  const heroTitle = heroCampaign
+    ? (isArabic ? heroCampaign.title_ar : heroCampaign.title_fr)
+    : t.hero.title;
+  const heroSubtitle = heroCampaign
+    ? (isArabic ? heroCampaign.subtitle_ar : heroCampaign.subtitle_fr)
+    : t.hero.subtitle;
 
   return (
-    <div className="space-y-16 sm:space-y-24">
-      {/* 1. Grand Hero Banner Principal */}
-      <section style={{ position: "relative" }} className="relative h-[85vh] sm:h-[90vh] w-full overflow-hidden bg-neutral-900 flex items-center justify-center">
+    <main dir={direction} className="overflow-hidden bg-[#faf9f6] text-[#171714]">
+      {/* Hero */}
+      <section className="relative isolate flex min-h-170 h-[min(86svh,900px)] items-center justify-center overflow-hidden bg-[#191916] sm:min-h-180">
         <Image
           src={
             heroCampaign?.desktop_image ||
-            "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=1920&auto=format&fit=crop"
+            "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2200&auto=format&fit=crop"
           }
-          alt="AVELOR Luxury"
+          alt="Collection de mode AVELOR"
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center opacity-70"
+          className="object-cover object-center opacity-75"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/30" />
+        <div className="absolute inset-0 bg-linear-to-b from-black/35 via-black/20 to-black/75" />
+        <div className="absolute inset-0 bg-linear-to-r from-black/35 via-transparent to-black/10" />
 
-        <div className="relative z-10 max-w-4xl mx-auto px-4 text-center text-white space-y-6 fade-in">
-          <div className="inline-flex items-center gap-2 border border-white/30 backdrop-blur-md px-3 py-1 text-xs tracking-widest uppercase font-light">
-            <Sparkles className="w-3.5 h-3.5 text-neutral-300" />
-            <span>Maison de Luxe AVELOR Maroc</span>
-          </div>
+        <motion.div
+          initial={{ opacity: 0, y: 32 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          className="relative z-10 mx-auto w-full max-w-5xl px-5 py-24 text-center text-white sm:px-8"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.7 }}
+            className="mb-7 inline-flex items-center gap-2 border border-white/35 bg-black/10 px-4 py-2 text-[10px] font-medium uppercase tracking-[0.28em] backdrop-blur-sm sm:text-[11px]"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-[#d8c5a0]" />
+            <span>{isArabic ? "دار أفيلور — أناقة مغربية" : "AVELOR · Maison de mode au Maroc"}</span>
+          </motion.div>
 
-          <h1 className="text-3xl sm:text-6xl font-serif tracking-[0.15em] font-light uppercase leading-tight">
-            {heroCampaign
-              ? language === "ar"
-                ? heroCampaign.title_ar
-                : heroCampaign.title_fr
-              : t.hero.title}
-          </h1>
+          <motion.h1
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
+            className="mx-auto max-w-4xl font-serif text-4xl font-light uppercase leading-[1.12] tracking-[0.07em] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
+          >
+            {heroTitle}
+          </motion.h1>
 
-          <p className="text-xs sm:text-base text-neutral-200 max-w-2xl mx-auto font-light leading-relaxed">
-            {heroCampaign
-              ? language === "ar"
-                ? heroCampaign.subtitle_ar
-                : heroCampaign.subtitle_fr
-              : t.hero.subtitle}
-          </p>
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ delay: 0.5, duration: 0.8 }}
+            className="mx-auto my-7 h-px w-16 bg-[#d8c5a0]"
+          />
 
-          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45, duration: 0.8 }}
+            className="mx-auto max-w-xl text-sm font-light leading-7 text-white/85 sm:text-base sm:leading-8"
+          >
+            {heroSubtitle}
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.8 }}
+            className="mt-9 flex flex-col justify-center gap-3 sm:flex-row sm:gap-4"
+          >
             <Link
               href="/homme"
-              className="w-full sm:w-auto px-8 py-3.5 bg-white text-black text-xs font-semibold uppercase tracking-widest hover:bg-neutral-200 transition-colors"
+              className="group inline-flex min-h-12 items-center justify-center gap-3 bg-[#f7f4ed] px-7 py-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#171714] transition-colors duration-300 hover:bg-[#d8c5a0] sm:min-w-48"
             >
               {t.hero.shop_men}
+              <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>
             <Link
               href="/femme"
-              className="w-full sm:w-auto px-8 py-3.5 border border-white text-white text-xs font-semibold uppercase tracking-widest hover:bg-white hover:text-black transition-colors"
+              className="inline-flex min-h-12 items-center justify-center gap-3 border border-white/75 bg-black/10 px-7 py-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-sm transition-colors duration-300 hover:border-white hover:bg-white hover:text-[#171714] sm:min-w-48"
             >
               {t.hero.shop_women}
+              <ArrowUpRight className="h-4 w-4" />
             </Link>
-          </div>
-        </div>
-      </section>
+          </motion.div>
 
-      {/* 2. Double Portail : Collection Homme vs Collection Femme */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-10">
-          <span className="text-[11px] uppercase tracking-[0.3em] text-neutral-400 font-semibold block mb-2">
-            Deux Univers Distincts
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-serif font-light uppercase tracking-wider text-black">
-            Choisissez Votre Univers
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Univers Homme */}
-          <Link
-            href="/homme"
-            style={{ position: "relative" }}
-            className="group relative h-[500px] sm:h-[600px] overflow-hidden bg-neutral-900 block"
-          >
-            <Image
-              src="https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=1200&auto=format&fit=crop"
-              alt="Collection Homme"
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-cover object-top opacity-80 transition-transform duration-700 ease-out group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-            <div className="absolute bottom-10 left-10 right-10 text-white space-y-3">
-              <span className="text-xs uppercase tracking-[0.3em] text-neutral-300 font-light">
-                {language === "fr" ? "L'Allure & La Rigueur" : "الأناقة والوقار"}
-              </span>
-              <h3 className="text-2xl sm:text-3xl font-serif font-light uppercase tracking-wider">
-                {t.nav.men}
-              </h3>
-              <p className="text-xs text-neutral-300 max-w-sm font-light">
-                {language === "fr"
-                  ? "Costumes sur mesure en laine d'Italie, chemises en coton d'Égypte et souliers de prestige."
-                  : "بدلات راقية من الصوف الإيطالي، قمصان قطنية فاخرة وأحذية سارتوريال."}
-              </p>
-              <div className="pt-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform">
-                <span>{language === "fr" ? "Explorer Homme" : "دخول عالم الرجال"}</span>
-                <ArrowIcon className="w-4 h-4" />
-              </div>
-            </div>
-          </Link>
-
-          {/* Univers Femme */}
-          <Link
-            href="/femme"
-            style={{ position: "relative" }}
-            className="group relative h-[500px] sm:h-[600px] overflow-hidden bg-neutral-900 block"
-          >
-            <Image
-              src="https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=1200&auto=format&fit=crop"
-              alt="Collection Femme"
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-cover object-top opacity-80 transition-transform duration-700 ease-out group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-            <div className="absolute bottom-10 left-10 right-10 text-white space-y-3">
-              <span className="text-xs uppercase tracking-[0.3em] text-neutral-300 font-light">
-                {language === "fr" ? "La Grâce & La Pureté" : "الرقة والأنوثة الخالدة"}
-              </span>
-              <h3 className="text-2xl sm:text-3xl font-serif font-light uppercase tracking-wider">
-                {t.nav.women}
-              </h3>
-              <p className="text-xs text-neutral-300 max-w-sm font-light">
-                {language === "fr"
-                  ? "Robes sculpturales en satin de soie, blazers ceinturés et sacs à main d'exception."
-                  : "فساتين سهرة ساحرة، بدلات كريب أنيقة وحقائب يد من الجلود الفاخرة."}
-              </p>
-              <div className="pt-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform">
-                <span>{language === "fr" ? "Explorer Femme" : "دخول عالم النساء"}</span>
-                <ArrowIcon className="w-4 h-4" />
-              </div>
-            </div>
-          </Link>
-        </div>
-      </section>
-
-      {/* 3. Pièces Emblématiques / Produits en Vedette */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 pb-4 border-b border-neutral-100">
-          <div>
-            <span className="text-[11px] uppercase tracking-[0.3em] text-neutral-400 font-semibold block mb-1">
-              Sélection Exclusive
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-serif font-light uppercase tracking-wider text-black">
-              {t.sections.popular}
-            </h2>
-          </div>
-          <Link
-            href="/homme"
-            className="mt-4 sm:mt-0 text-xs font-semibold uppercase tracking-widest hover:text-neutral-500 transition-colors inline-flex items-center gap-1.5"
-          >
-            <span>{language === "fr" ? "Tout afficher" : "عرض الكل"}</span>
-            <ArrowIcon className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="animate-pulse space-y-3">
-                <div className="aspect-[3/4] bg-neutral-100 w-full" />
-                <div className="h-3 bg-neutral-100 w-3/4" />
-                <div className="h-3 bg-neutral-100 w-1/2" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* 4. Bannière Campagne promotionnelle */}
-      <section className="bg-neutral-50 py-16 sm:py-24 border-y border-neutral-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-          <span className="text-[11px] uppercase tracking-[0.3em] text-neutral-500 font-semibold">
-            Privilège Réservé au Maroc
-          </span>
-          <h2 className="text-2xl sm:text-4xl font-serif font-light uppercase tracking-widest text-black">
-            {language === "fr" ? "Code de Réduction Exclusif : BIENVENUE10" : "رمز خصم حصري : BIENVENUE10"}
-          </h2>
-          <p className="text-xs sm:text-sm text-neutral-600 max-w-xl mx-auto font-light leading-relaxed">
-            {language === "fr"
-              ? "Bénéficiez de 10% de réduction immédiate sur votre première commande ainsi que de la livraison gratuite partout au Royaume."
-              : "استفيدوا من خصم 10% فوري على طلبيتكم الأولى مع توصيل مجاني إلى باب منزلكم في كافة ربوع المملكة."}
+          <p className="mt-12 text-[9px] uppercase tracking-[0.32em] text-white/65">
+            {isArabic ? "أناقة خالدة · تفاصيل مختارة" : "Élégance intemporelle · Détails choisis"}
           </p>
-          <div className="pt-2">
+        </motion.div>
+
+        <div className="absolute bottom-0 left-0 h-1 w-full bg-linear-to-r from-transparent via-[#d8c5a0]/80 to-transparent" />
+      </section>
+
+      {/* Brand benefits */}
+      <section className="border-b border-[#e9e5dc] bg-[#f3f0e9]">
+        <LuxuryStagger className="mx-auto grid max-w-7xl grid-cols-1 divide-y divide-[#e0dbd0] px-5 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:px-8">
+          <LuxuryStaggerItem className="flex items-center justify-center gap-3 py-5 text-center sm:py-6">
+            <Gem className="h-4 w-4 shrink-0 text-[#9c8053]" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase tracking-[0.16em] text-[#45433d]">
+              {isArabic ? "اختيارات راقية" : "Sélection soignée"}
+            </span>
+          </LuxuryStaggerItem>
+          <LuxuryStaggerItem className="flex items-center justify-center gap-3 py-5 text-center sm:py-6">
+            <Truck className="h-4 w-4 shrink-0 text-[#9c8053]" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase tracking-[0.16em] text-[#45433d]">
+              {isArabic ? "التوصيل في جميع أنحاء المغرب" : "Livraison partout au Maroc"}
+            </span>
+          </LuxuryStaggerItem>
+          <LuxuryStaggerItem className="flex items-center justify-center gap-3 py-5 text-center sm:py-6">
+            <ShieldCheck className="h-4 w-4 shrink-0 text-[#9c8053]" strokeWidth={1.5} />
+            <span className="text-[10px] uppercase tracking-[0.16em] text-[#45433d]">
+              {isArabic ? "تجربة تسوق موثوقة" : "Expérience d’achat sécurisée"}
+            </span>
+          </LuxuryStaggerItem>
+        </LuxuryStagger>
+      </section>
+
+      {/* Collections */}
+      <section className="mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-28 lg:px-10">
+        <LuxuryFadeIn className="mb-10 text-center sm:mb-14">
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#9c8053]">
+            {isArabic ? "اكتشف مجموعاتنا" : "Les univers AVELOR"}
+          </p>
+          <h2 className="font-serif text-3xl font-light uppercase tracking-[0.06em] sm:text-4xl">
+            {isArabic ? "أناقة لكل أسلوب" : "Deux univers, une signature"}
+          </h2>
+          <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-[#77746d]">
+            {isArabic
+              ? "قطع مختارة تجمع بين الجودة والتصميم والأناقة اليومية."
+              : "Des pièces choisies pour conjuguer caractère, qualité et élégance au quotidien."}
+          </p>
+        </LuxuryFadeIn>
+
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-7">
+          <LuxuryFadeIn direction="right" distance={30}>
+            <Link href="/homme" className="group relative isolate block min-h-110 overflow-hidden bg-[#292722] sm:min-h-147.5">
+              <Image
+                src="https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=1400&auto=format&fit=crop"
+                alt="Collection homme AVELOR"
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+              />
+              <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/15 to-black/5 transition-opacity duration-300 group-hover:from-black/90" />
+              <div className="absolute inset-x-0 bottom-0 p-7 text-white sm:p-10">
+                <p className="mb-3 text-[10px] uppercase tracking-[0.25em] text-[#e1cfad]">
+                  {isArabic ? "الأناقة والوقار" : "L’allure & la précision"}
+                </p>
+                <h3 className="font-serif text-3xl font-light uppercase tracking-[0.08em] sm:text-4xl">
+                  {t.nav.men}
+                </h3>
+                <p className="mt-3 max-w-sm text-sm leading-6 text-white/75">
+                  {isArabic
+                    ? "تصاميم أنيقة وتفاصيل راقية لإطلالة مميزة."
+                    : "Des essentiels raffinés et des silhouettes affirmées pour chaque occasion."}
+                </p>
+                <span className="mt-6 inline-flex items-center gap-3 border-b border-white/50 pb-2 text-[10px] font-semibold uppercase tracking-[0.2em]">
+                  {isArabic ? "اكتشف المجموعة" : "Explorer la collection"}
+                  <ArrowIcon className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 rtl:group-hover:-translate-x-1" />
+                </span>
+              </div>
+            </Link>
+          </LuxuryFadeIn>
+
+          <LuxuryFadeIn direction="left" distance={30}>
+            <Link href="/femme" className="group relative isolate block min-h-110 overflow-hidden bg-[#292722] sm:min-h-147.5">
+              <Image
+                src="https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=1400&auto=format&fit=crop"
+                alt="Collection femme AVELOR"
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+              />
+              <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/15 to-black/5 transition-opacity duration-300 group-hover:from-black/90" />
+              <div className="absolute inset-x-0 bottom-0 p-7 text-white sm:p-10">
+                <p className="mb-3 text-[10px] uppercase tracking-[0.25em] text-[#e1cfad]">
+                  {isArabic ? "الرقة والأنوثة الخالدة" : "La grâce & la modernité"}
+                </p>
+                <h3 className="font-serif text-3xl font-light uppercase tracking-[0.08em] sm:text-4xl">
+                  {t.nav.women}
+                </h3>
+                <p className="mt-3 max-w-sm text-sm leading-6 text-white/75">
+                  {isArabic
+                    ? "قطع عصرية تجمع بين الأنوثة والبساطة الراقية."
+                    : "Des pièces contemporaines où la féminité rencontre une simplicité sophistiquée."}
+                </p>
+                <span className="mt-6 inline-flex items-center gap-3 border-b border-white/50 pb-2 text-[10px] font-semibold uppercase tracking-[0.2em]">
+                  {isArabic ? "اكتشفي المجموعة" : "Explorer la collection"}
+                  <ArrowIcon className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 rtl:group-hover:-translate-x-1" />
+                </span>
+              </div>
+            </Link>
+          </LuxuryFadeIn>
+        </div>
+      </section>
+
+      {/* Featured products */}
+      <section className="bg-white py-20 sm:py-28">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
+          <LuxuryFadeIn className="mb-9 flex flex-col gap-5 border-b border-[#e9e5dc] pb-6 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#9c8053]">
+                {isArabic ? "اختياراتنا لكم" : "La sélection du moment"}
+              </p>
+              <h2 className="font-serif text-3xl font-light uppercase tracking-[0.06em] sm:text-4xl">
+                {t.sections.popular}
+              </h2>
+            </div>
             <Link
               href="/homme"
-              className="inline-block px-8 py-3.5 bg-black text-white text-xs font-semibold uppercase tracking-widest hover:bg-neutral-800 transition-colors"
+              className="inline-flex w-fit items-center gap-2 border-b border-[#b6a17e] pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors hover:text-[#9c8053]"
             >
-              {language === "fr" ? "Profiter de l'offre" : "الاستفادة من العرض"}
+              {isArabic ? "عرض جميع المنتجات" : "Voir toute la sélection"}
+              <ArrowIcon className="h-3.5 w-3.5" />
             </Link>
-          </div>
+          </LuxuryFadeIn>
+
+          {loading ? (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 md:grid-cols-4">
+              {[1, 2, 3, 4].map((item) => (
+                <div key={item} className="animate-pulse">
+                  <div className="aspect-3/4 bg-[#f0eee9]" />
+                  <div className="mt-4 h-3 w-3/4 bg-[#f0eee9]" />
+                  <div className="mt-3 h-3 w-1/2 bg-[#f0eee9]" />
+                </div>
+              ))}
+            </div>
+          ) : featuredProducts.length > 0 ? (
+            <LuxuryStagger className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 md:grid-cols-4">
+              {featuredProducts.slice(0, 8).map((product, index) => (
+                <LuxuryStaggerItem key={product.id}>
+                  <ProductCard product={product} priority={index < 4} />
+                </LuxuryStaggerItem>
+              ))}
+            </LuxuryStagger>
+          ) : (
+            <div className="py-14 text-center text-sm text-[#77746d]">
+              {isArabic ? "لا توجد منتجات مميزة حالياً." : "Aucun produit à la une pour le moment."}
+            </div>
+          )}
         </div>
       </section>
-    </div>
+
+      {/* Promotion */}
+      <section className="relative overflow-hidden bg-[#22221e] px-5 py-20 text-center text-white sm:px-8 sm:py-28">
+        <div className="pointer-events-none absolute -left-20 -top-24 h-72 w-72 rounded-full border border-white/10" />
+        <div className="pointer-events-none absolute -bottom-40 -right-16 h-96 w-96 rounded-full border border-white/10" />
+        <LuxuryFadeIn className="relative mx-auto max-w-3xl">
+          <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#d8c5a0]">
+            {isArabic ? "امتياز خاص بكم" : "Une attention pour votre première commande"}
+          </p>
+          <h2 className="font-serif text-3xl font-light uppercase leading-tight tracking-wider sm:text-5xl">
+            {isArabic ? "خصم حصري 10٪" : "Votre première commande, à -10 %"}
+          </h2>
+          <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-white/70">
+            {isArabic
+              ? "استخدموا الرمز أدناه عند الطلب واستفيدوا من التوصيل المجاني في جميع أنحاء المغرب."
+              : "Utilisez ce code lors de votre commande et profitez de la livraison offerte partout au Maroc."}
+          </p>
+
+          <div className="mx-auto mt-8 inline-flex items-center gap-4 border border-[#d8c5a0]/60 bg-white/4 px-5 py-4">
+            <span className="font-mono text-sm tracking-[0.24em] text-[#e5d6ba] sm:text-base">BIENVENUE10</span>
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof navigator !== "undefined" && navigator.clipboard) {
+                  void navigator.clipboard.writeText("BIENVENUE10");
+                }
+              }}
+              className="border-l border-white/20 pl-4 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/75 transition-colors hover:text-white"
+            >
+              {isArabic ? "نسخ الرمز" : "Copier"}
+            </button>
+          </div>
+
+          <div className="mt-8">
+            <Link
+              href="/homme"
+              className="inline-flex min-h-12 items-center justify-center gap-3 bg-[#f7f4ed] px-8 py-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#171714] transition-colors hover:bg-[#d8c5a0]"
+            >
+              {isArabic ? "اكتشفوا المجموعة" : "Découvrir la collection"}
+              <ArrowIcon className="h-4 w-4" />
+            </Link>
+          </div>
+        </LuxuryFadeIn>
+      </section>
+    </main>
   );
 }

@@ -1,6 +1,7 @@
 from decimal import Decimal
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
+from app.core.config import settings
 from app.core.database import SessionLocal, Base, engine
 from app.core.security import get_password_hash
 from app.models.user import User, Address
@@ -17,11 +18,11 @@ def seed_database():
 
     try:
         # 1. Utilisateurs
-        admin = db.query(User).filter(User.email == "admin@avelor.ma").first()
+        admin = db.query(User).filter(User.email == settings.FIRST_SUPERUSER_EMAIL).first()
         if not admin:
             admin = User(
-                email="admin@avelor.ma",
-                hashed_password=get_password_hash("AdminAvelor2026!"),
+                email=settings.FIRST_SUPERUSER_EMAIL,
+                hashed_password=get_password_hash(settings.FIRST_SUPERUSER_PASSWORD),
                 first_name="Karim",
                 last_name="El Fassi",
                 phone="+212661000001",

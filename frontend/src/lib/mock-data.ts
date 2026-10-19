@@ -1,4 +1,4 @@
-import { Product, Campaign } from "@/types";
+import { Product, Campaign, Category } from "@/types";
 
 export const initialCampaigns: Campaign[] = [
   {
@@ -193,4 +193,18 @@ export const initialProducts: Product[] = [
       },
     ],
   },
+];
+
+export const mockCategoriesMen: Category[] = [
+  { id: 1, name_fr: "Costumes & Blazers", name_ar: "بدلات وسترات", slug: "homme-costumes", universe: "MEN", sort_order: 1, is_active: true },
+  { id: 2, name_fr: "Chemises & Polos", name_ar: "قمصان وبولو", slug: "homme-chemises", universe: "MEN", sort_order: 2, is_active: true },
+  { id: 3, name_fr: "Chaussures", name_ar: "الأحذية", slug: "homme-chaussures", universe: "MEN", sort_order: 3, is_active: true },
+  { id: 4, name_fr: "Accessoires & Cuir", name_ar: "إكسسوارات وجلديات", slug: "homme-accessoires", universe: "MEN", sort_order: 4, is_active: true },
+];
+
+export const mockCategoriesWomen: Category[] = [
+  { id: 5, name_fr: "Robes & Soirée", name_ar: "فساتين وسهرة", slug: "femme-robes", universe: "WOMEN", sort_order: 1, is_active: true },
+  { id: 6, name_fr: "Blazers & Tailleurs", name_ar: "بدلات وسترات", slug: "femme-blazers", universe: "WOMEN", sort_order: 2, is_active: true },
+  { id: 7, name_fr: "Sacs à Main", name_ar: "حقائب يد", slug: "femme-sacs", universe: "WOMEN", sort_order: 3, is_active: true },
+  { id: 8, name_fr: "Chaussures", name_ar: "الأحذية", slug: "femme-chaussures", universe: "WOMEN", sort_order: 4, is_active: true },
 ];

@@ -107,6 +107,8 @@ export interface User {
   first_name?: string;
   last_name?: string;
   phone?: string;
+  avatar_url?: string;
+  oauth_provider?: string;
   role: UserRole;
   is_active: boolean;
   addresses?: Address[];
@@ -195,4 +197,34 @@ export interface Promotion {
   max_uses?: number;
   current_uses: number;
   is_active: boolean;
+}
+
+export interface LowStockItem {
+  id: number;
+  product_name: string;
+  sku: string;
+  size: string;
+  color: string;
+  stock: number;
+}
+
+export interface AdminStats {
+  total_revenue: number;
+  total_orders: number;
+  pending_orders: number;
+  low_stock_count: number;
+  low_stock_items?: LowStockItem[];
+  recent_orders?: any[];
+}
+
+export interface AuditLog {
+  id: number;
+  user_id?: number;
+  user_email?: string;
+  action: string;
+  entity: string;
+  entity_id?: string;
+  details?: string;
+  ip_address?: string;
+  created_at: string;
 }

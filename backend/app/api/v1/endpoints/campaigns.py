@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -16,7 +16,7 @@ def get_active_campaigns(
     universe: Optional[GenderUniverse] = Query(None, description="Filtrer par univers"),
     db: Session = Depends(get_db)
 ):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     query = db.query(Campaign).filter(
         Campaign.is_active == True,
         or_(Campaign.starts_at.is_(None), Campaign.starts_at <= now),

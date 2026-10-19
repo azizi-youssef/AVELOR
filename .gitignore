@@ -1,0 +1,57 @@
+# ==========================================
+# AVELOR — .gitignore racine du projet
+# ==========================================
+
+# ─── Variables d'environnement (SECRETS) ──
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+!frontend/.env.local.example
+
+# ─── Python / Backend ────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyc
+*.pdb
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+.venv/
+venv/
+env/
+*.log
+*.sqlite
+*.db
+backend.log
+
+# ─── Node / Frontend ─────────────────────
+node_modules/
+.next/
+out/
+.vercel/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ─── Testing & Coverage ──────────────────
+.pytest_cache/
+.coverage
+coverage/
+htmlcov/
+*.xml
+
+# ─── Système / OS ────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.pem
