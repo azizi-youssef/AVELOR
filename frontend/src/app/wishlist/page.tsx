@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -23,7 +23,7 @@ export default function WishlistPage() {
             {isArabic ? "Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø£Ù…Ù†ÙŠØ§Øª" : "Mes Favoris"}
           </h1>
           {count > 0 && (
-            <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-black px-2 text-xs font-bold text-white">
+            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-black px-2 text-xs font-bold text-white">
               {count}
             </span>
           )}

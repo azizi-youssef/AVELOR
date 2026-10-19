@@ -120,9 +120,12 @@ export interface OrderItem {
   variant_id: number;
   product_name_fr: string;
   product_name_ar: string;
+  product_name?: string;
+  product_image?: string;
   sku: string;
   size: string;
   color_name_fr: string;
+  color?: string;
   unit_price: string | number;
   quantity: number;
   total_price: string | number;
@@ -153,33 +156,41 @@ export interface Order {
   shipping_address: string;
   shipping_city: string;
   shipping_postal_code?: string;
+  shipping_country?: string;
   delivery_notes?: string;
   status: OrderStatus;
   payment_status: PaymentStatus;
   payment_method: PaymentMethod;
   subtotal: string | number;
-  shipping_fee: string | number;
+  shipping_fee?: string | number;
+  shipping_amount?: string | number;
   discount_amount: string | number;
   total_amount: string | number;
   admin_notes?: string;
+  notes?: string;
+  tracking_number?: string;
   created_at: string;
   items: OrderItem[];
   shipment?: Shipment;
   payment?: Payment;
+  user_id?: number;
 }
 
 export interface Campaign {
   id: number;
-  title_fr: string;
-  title_ar: string;
+  title_fr?: string;
+  title_ar?: string;
+  title?: string;
   subtitle_fr?: string;
   subtitle_ar?: string;
+  subtitle?: string;
   button_text_fr?: string;
   button_text_ar?: string;
   link_url: string;
-  desktop_image: string;
+  desktop_image?: string;
+  image_url?: string;
   mobile_image?: string;
-  target_universe: GenderUniverse;
+  target_universe?: GenderUniverse | string;
   is_active: boolean;
   sort_order: number;
 }
@@ -187,15 +198,17 @@ export interface Campaign {
 export interface Promotion {
   id: number;
   code: string;
-  name_fr: string;
-  name_ar: string;
+  name_fr?: string;
+  name_ar?: string;
   discount_type: "PERCENTAGE" | "FIXED";
   discount_value: string | number;
-  min_order_amount: string | number;
+  min_order_amount?: string | number;
   starts_at?: string;
   expires_at?: string;
+  valid_until?: string;
   max_uses?: number;
-  current_uses: number;
+  current_uses?: number;
+  used_count?: number;
   is_active: boolean;
 }
 
@@ -211,10 +224,136 @@ export interface LowStockItem {
 export interface AdminStats {
   total_revenue: number;
   total_orders: number;
+  average_cart_value?: number;
   pending_orders: number;
   low_stock_count: number;
+  out_of_stock_count?: number;
+  total_customers?: number;
+  total_products?: number;
+  status_counts?: Record<string, number>;
+  sales_timeline?: Array<{
+    date: string;
+    full_date: string;
+    revenue: number;
+    orders: number;
+  }>;
+  universe_breakdown?: {
+    men_revenue?: number;
+    women_revenue?: number;
+    homme?: number;
+    femme?: number;
+  };
   low_stock_items?: LowStockItem[];
   recent_orders?: any[];
+}
+
+export interface Customer {
+  id: number;
+  email: string;
+  name?: string;
+  full_name?: string;
+  phone?: string;
+  city?: string;
+  role: string;
+  is_active?: boolean;
+  total_orders?: number;
+  orders_count?: number;
+  total_spent?: number;
+  last_order_date?: string | null;
+  created_at: string;
+}
+
+export interface InventoryItem {
+  id: number;
+  product_id?: number;
+  product_name?: string;
+  product_title?: string;
+  product_sku?: string;
+  sku: string;
+  size: string;
+  color_name?: string;
+  color_code?: string;
+  color?: string;
+  stock: number;
+  base_price?: number;
+  price?: number;
+  discount_price?: number | null;
+  universe?: GenderUniverse | string;
+  category_name?: string;
+  category?: string;
+  is_active?: boolean;
+  status?: "OUT_OF_STOCK" | "LOW_STOCK" | "IN_STOCK";
+}
+
+export interface InventoryMovementRecord {
+  id: number;
+  variant_id: number;
+  sku: string;
+  product_name?: string;
+  product_title?: string;
+  quantity: number;
+  reason: string;
+  order_id?: number | null;
+  reference?: string | null;
+  created_at: string;
+}
+
+export interface AnalyticsData {
+  categories: Array<{
+    id: number;
+    slug?: string;
+    name: string;
+    universe?: string;
+    revenue: number;
+    units_sold: number;
+  }>;
+  top_products: Array<{
+    id?: number;
+    product_id?: number;
+    name?: string;
+    title?: string;
+    image?: string;
+    price?: number;
+    units_sold: number;
+    revenue: number;
+  }>;
+}
+
+export interface StoreSettings {
+  store_name?: string;
+  currency?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  address?: string;
+  shipping_fee?: number;
+  free_shipping_threshold?: number;
+  return_window_days?: number;
+  authorized_staff?: Array<{
+    id?: number;
+    name: string;
+    email: string;
+    role: string;
+  }>;
+  store?: {
+    name: string;
+    tagline: string;
+    currency: string;
+    contact_email: string;
+    contact_phone: string;
+    standard_shipping_fee: number;
+    free_shipping_threshold: number;
+    return_policy_days: number;
+    cod_enabled: boolean;
+    maintenance_mode: boolean;
+  };
+  authorized_users?: Array<{
+    id: number;
+    email: string;
+    name: string;
+    role: string;
+    is_active: boolean;
+    created_at: string;
+  }>;
 }
 
 export interface AuditLog {
@@ -223,8 +362,10 @@ export interface AuditLog {
   user_email?: string;
   action: string;
   entity: string;
+  entity_type?: string;
   entity_id?: string;
   details?: string;
   ip_address?: string;
   created_at: string;
 }
+

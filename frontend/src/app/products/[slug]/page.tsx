@@ -40,7 +40,7 @@ function ImageZoomModal({ src, alt, onClose }: { src: string; alt: string; onClo
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/90"
+      className="fixed inset-0 z-80 flex items-center justify-center bg-black/90"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -54,7 +54,7 @@ function ImageZoomModal({ src, alt, onClose }: { src: string; alt: string; onClo
         <X className="h-5 w-5" />
       </button>
       <div
-        className="relative max-h-[90vh] max-w-[90vw] w-full aspect-[3/4]"
+        className="relative max-h-[90vh] max-w-[90vw] w-full aspect-3/4"
         onClick={(e) => e.stopPropagation()}
       >
         <Image src={src} alt={alt} fill priority sizes="90vw" className="object-contain" />
@@ -111,7 +111,7 @@ function SizeGuideModal({ onClose, isArabic }: { onClose: () => void; isArabic: 
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 px-4"
+      className="fixed inset-0 z-80 flex items-center justify-center bg-black/60 px-4"
       onClick={onClose}
     >
       <div
@@ -268,7 +268,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
       <div className="max-w-7xl mx-auto px-4 py-20 animate-pulse space-y-8">
         <div className="h-4 bg-neutral-200 w-32" />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <div className="aspect-[3/4] bg-neutral-100" />
+          <div className="aspect-3/4 bg-neutral-100" />
           <div className="space-y-6">
             <div className="h-8 bg-neutral-200 w-3/4" />
             <div className="h-5 bg-neutral-200 w-1/3" />
@@ -322,7 +322,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
           {/* Galerie */}
           <div className="space-y-4">
-            <div className="relative group aspect-[3/4] w-full overflow-hidden bg-neutral-100 border border-neutral-100">
+            <div className="relative group aspect-3/4 w-full overflow-hidden bg-neutral-100 border border-neutral-100">
               <Image
                 src={selectedImage || "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?q=80&w=1000&auto=format&fit=crop"}
                 alt={name}
@@ -348,7 +348,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                     onClick={() => setSelectedImage(img.url)}
                     role="option"
                     aria-selected={selectedImage === img.url}
-                    className={`relative w-20 aspect-[3/4] flex-shrink-0 overflow-hidden border-2 transition-all ${
+                    className={`relative w-20 aspect-3/4 shrink-0 overflow-hidden border-2 transition-all ${
                       selectedImage === img.url ? "border-black" : "border-transparent opacity-60 hover:opacity-100"
                     }`}
                   >
@@ -371,7 +371,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                   {name}
                 </h1>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0 pt-1">
+              <div className="flex items-center gap-2 shrink-0 pt-1">
                 <button
                   onClick={() => toggleItem(product)}
                   aria-label={wishlisted ? (isArabic ? "إزالة من المفضلة" : "Retirer des favoris") : (isArabic ? "أضف إلى المفضلة" : "Ajouter aux favoris")}

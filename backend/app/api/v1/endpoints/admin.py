@@ -1,8 +1,8 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, desc, or_
+from sqlalchemy import func, desc, or_, and_
 from typing import List, Optional
 
 from app.core.database import get_db
@@ -14,7 +14,7 @@ from app.models.order import Order, OrderItem, Shipment, Payment
 from app.models.promotion import Promotion
 from app.models.campaign import Campaign
 from app.models.audit import AuditLog
-from app.models.enums import OrderStatus, PaymentStatus, InventoryReason, GenderUniverse
+from app.models.enums import OrderStatus, PaymentStatus, InventoryReason, GenderUniverse, UserRole
 from app.schemas.product import (
     ProductCreate, ProductUpdate, ProductResponse,
     ProductVariantCreate, ProductVariantResponse,
@@ -44,6 +44,14 @@ def get_dashboard_stats(
     ).scalar()
     total_revenue = Decimal(str(revenue_query)) if revenue_query else Decimal("0.00")
 
+    # Panier moyen
+    valid_orders_count = db.query(Order).filter(Order.status != OrderStatus.CANCELLED).count()
+    average_cart_value = (
+        (total_revenue / Decimal(str(valid_orders_count))).quantize(Decimal("0.01"))
+        if valid_orders_count > 0
+        else Decimal("0.00")
+    )
+
     # Commandes à traiter (PENDING ou CONFIRMED ou PROCESSING)
     pending_orders = db.query(Order).filter(
         Order.status.in_([OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PROCESSING])
@@ -54,19 +62,95 @@ def get_dashboard_stats(
         joinedload(ProductVariant.product)
     ).filter(
         ProductVariant.is_active == True,
-        ProductVariant.stock < 5
+        ProductVariant.stock < 5,
+        ProductVariant.stock > 0
     ).limit(10).all()
+
+    # Rupture totale de stock
+    out_of_stock_count = db.query(ProductVariant).filter(
+        ProductVariant.is_active == True,
+        ProductVariant.stock == 0
+    ).count()
+
+    total_low_stock_count = db.query(ProductVariant).filter(
+        ProductVariant.is_active == True,
+        ProductVariant.stock < 5
+    ).count()
+
+    # Répartition par statut de commande
+    status_counts = {}
+    for st in OrderStatus:
+        status_counts[st.value] = db.query(Order).filter(Order.status == st).count()
+
+    # Répartition par univers (Homme vs Femme) sur les commandes non annulées
+    men_revenue_query = db.query(func.sum(OrderItem.total_price)).join(
+        Order, OrderItem.order_id == Order.id
+    ).join(
+        Product, OrderItem.product_id == Product.id
+    ).filter(
+        Order.status != OrderStatus.CANCELLED,
+        Product.universe == GenderUniverse.MEN
+    ).scalar()
+    men_revenue = Decimal(str(men_revenue_query)) if men_revenue_query else Decimal("0.00")
+
+    women_revenue_query = db.query(func.sum(OrderItem.total_price)).join(
+        Order, OrderItem.order_id == Order.id
+    ).join(
+        Product, OrderItem.product_id == Product.id
+    ).filter(
+        Order.status != OrderStatus.CANCELLED,
+        Product.universe == GenderUniverse.WOMEN
+    ).scalar()
+    women_revenue = Decimal(str(women_revenue_query)) if women_revenue_query else Decimal("0.00")
+
+    # Chronologie des 7 derniers jours (ventes quotidiennes)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    sales_timeline = []
+    for i in range(6, -1, -1):
+        day_date = (now - timedelta(days=i)).date()
+        day_start = datetime.combine(day_date, datetime.min.time())
+        day_end = datetime.combine(day_date, datetime.max.time())
+        
+        day_rev = db.query(func.sum(Order.total_amount)).filter(
+            Order.status != OrderStatus.CANCELLED,
+            Order.created_at >= day_start,
+            Order.created_at <= day_end
+        ).scalar()
+        day_orders = db.query(Order).filter(
+            Order.created_at >= day_start,
+            Order.created_at <= day_end
+        ).count()
+        sales_timeline.append({
+            "date": day_date.strftime("%d/%m"),
+            "full_date": day_date.isoformat(),
+            "revenue": float(day_rev) if day_rev else 0.0,
+            "orders": day_orders
+        })
+
+    # Total clients et produits actifs
+    total_customers = db.query(User).filter(User.role == UserRole.CUSTOMER).count()
+    total_products = db.query(Product).filter(Product.is_active == True).count()
 
     # 5 Commandes récentes
     recent_orders = db.query(Order).options(
         joinedload(Order.items)
-    ).order_by(Order.created_at.desc()).limit(5).all()
+    ).order_by(Order.created_at.desc()).limit(6).all()
 
     return {
         "total_orders": total_orders,
         "total_revenue": total_revenue,
+        "average_cart_value": average_cart_value,
         "pending_orders": pending_orders,
-        "low_stock_count": len(low_stock_variants),
+        "low_stock_count": total_low_stock_count,
+        "out_of_stock_count": out_of_stock_count,
+        "total_customers": total_customers,
+        "total_products": total_products,
+        "status_counts": status_counts,
+        "sales_timeline": sales_timeline,
+        "universe_breakdown": {
+            "men_revenue": men_revenue,
+            "women_revenue": women_revenue,
+        },
         "low_stock_items": [
             {
                 "id": v.id,
@@ -82,6 +166,7 @@ def get_dashboard_stats(
                 "id": o.id,
                 "order_number": o.order_number,
                 "customer_name": o.customer_name,
+                "customer_city": o.shipping_city,
                 "total_amount": o.total_amount,
                 "status": o.status,
                 "created_at": o.created_at
@@ -232,9 +317,9 @@ def update_variant_stock(
     variant.stock = int(new_stock)
     inv = InventoryMovement(
         variant_id=variant.id,
-        quantity_change=diff,
+        quantity=diff,
         reason=InventoryReason.ADJUSTMENT,
-        reference_id=f"admin_{user.id}"
+        reference=f"admin_{user.id}"
     )
     db.add(inv)
     db.commit()
@@ -448,3 +533,258 @@ def get_audit_logs(
             "created_at": l.created_at
         } for l in logs
     ]
+
+# ==========================================
+# 7. GESTION DES CLIENTS (CUSTOMERS)
+# ==========================================
+@router.get("/customers")
+def get_admin_customers(
+    search: Optional[str] = None,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user)
+):
+    query = db.query(User).filter(User.role == UserRole.CUSTOMER)
+    if search:
+        st = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                User.email.ilike(st),
+                User.first_name.ilike(st),
+                User.last_name.ilike(st),
+                User.phone.ilike(st)
+            )
+        )
+    users = query.order_by(User.created_at.desc()).limit(limit).all()
+
+    results = []
+    for u in users:
+        # Aggregated order stats for this user
+        orders_q = db.query(Order).filter(Order.user_id == u.id)
+        order_count = orders_q.count()
+        total_spent = db.query(func.sum(Order.total_amount)).filter(
+            Order.user_id == u.id,
+            Order.status != OrderStatus.CANCELLED
+        ).scalar() or Decimal("0.00")
+        last_order = orders_q.order_by(Order.created_at.desc()).first()
+
+        full_name = f"{u.first_name or ''} {u.last_name or ''}".strip()
+        if not full_name and last_order:
+            full_name = last_order.customer_name
+
+        city = last_order.shipping_city if last_order else (u.addresses[0].city if u.addresses else "Maroc")
+
+        results.append({
+            "id": u.id,
+            "email": u.email,
+            "name": full_name or u.email.split("@")[0].capitalize(),
+            "phone": u.phone or (last_order.customer_phone if last_order else ""),
+            "city": city,
+            "role": u.role,
+            "is_active": u.is_active,
+            "total_orders": order_count,
+            "total_spent": float(total_spent),
+            "last_order_date": last_order.created_at if last_order else None,
+            "created_at": u.created_at
+        })
+
+    return results
+
+# ==========================================
+# 8. GESTION DE L'INVENTAIRE & STOCKS
+# ==========================================
+@router.get("/inventory")
+def get_admin_inventory(
+    low_stock_only: bool = False,
+    universe: Optional[GenderUniverse] = None,
+    search: Optional[str] = None,
+    limit: int = 150,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_catalog_manager)
+):
+    query = db.query(ProductVariant).options(
+        joinedload(ProductVariant.product).joinedload(Product.category)
+    ).join(Product, ProductVariant.product_id == Product.id)
+
+    if low_stock_only:
+        query = query.filter(ProductVariant.stock < 5)
+
+    if universe:
+        query = query.filter(Product.universe == universe)
+
+    if search:
+        st = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                ProductVariant.sku.ilike(st),
+                Product.name_fr.ilike(st),
+                Product.name_ar.ilike(st),
+                ProductVariant.size.ilike(st),
+                ProductVariant.color_name_fr.ilike(st)
+            )
+        )
+
+    variants = query.order_by(ProductVariant.stock.asc()).limit(limit).all()
+
+    return [
+        {
+            "id": v.id,
+            "product_id": v.product_id,
+            "product_name": v.product.name_fr if v.product else "",
+            "product_sku": v.product.sku if v.product else "",
+            "sku": v.sku,
+            "size": v.size,
+            "color_name": v.color_name_fr,
+            "color_code": v.color_code,
+            "stock": v.stock,
+            "base_price": float(v.product.base_price) if v.product else 0.0,
+            "discount_price": float(v.product.discount_price) if (v.product and v.product.discount_price) else None,
+            "universe": v.product.universe if v.product else "UNISEX",
+            "category_name": v.product.category.name_fr if (v.product and v.product.category) else "Général",
+            "is_active": v.is_active and (v.product.is_active if v.product else True),
+            "status": "OUT_OF_STOCK" if v.stock == 0 else ("LOW_STOCK" if v.stock < 5 else "IN_STOCK")
+        } for v in variants
+    ]
+
+@router.get("/inventory/movements")
+def get_inventory_movements(
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_catalog_manager)
+):
+    movements = db.query(InventoryMovement).options(
+        joinedload(InventoryMovement.variant).joinedload(ProductVariant.product)
+    ).order_by(InventoryMovement.created_at.desc()).limit(limit).all()
+
+    return [
+        {
+            "id": m.id,
+            "variant_id": m.variant_id,
+            "sku": m.variant.sku if m.variant else "Inconnu",
+            "product_name": m.variant.product.name_fr if (m.variant and m.variant.product) else "",
+            "quantity": m.quantity,
+            "reason": m.reason,
+            "order_id": m.order_id,
+            "reference": m.reference,
+            "created_at": m.created_at
+        } for m in movements
+    ]
+
+# ==========================================
+# 9. STATISTIQUES AVANCÉES (ANALYTICS)
+# ==========================================
+@router.get("/analytics")
+def get_admin_analytics(
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user)
+):
+    # Performance par catégorie
+    categories = db.query(Category).all()
+    category_stats = []
+    for cat in categories:
+        rev = db.query(func.sum(OrderItem.total_price)).join(
+            Order, OrderItem.order_id == Order.id
+        ).join(
+            Product, OrderItem.product_id == Product.id
+        ).filter(
+            Order.status != OrderStatus.CANCELLED,
+            Product.category_id == cat.id
+        ).scalar() or Decimal("0.00")
+
+        units = db.query(func.sum(OrderItem.quantity)).join(
+            Order, OrderItem.order_id == Order.id
+        ).join(
+            Product, OrderItem.product_id == Product.id
+        ).filter(
+            Order.status != OrderStatus.CANCELLED,
+            Product.category_id == cat.id
+        ).scalar() or 0
+
+        category_stats.append({
+            "id": cat.id,
+            "slug": cat.slug,
+            "name": cat.name_fr,
+            "universe": cat.universe,
+            "revenue": float(rev),
+            "units_sold": int(units)
+        })
+
+    category_stats.sort(key=lambda x: x["revenue"], reverse=True)
+
+    # Top 5 produits vendus
+    top_items = db.query(
+        OrderItem.product_id,
+        OrderItem.product_name_fr,
+        func.sum(OrderItem.quantity).label("units"),
+        func.sum(OrderItem.total_price).label("revenue")
+    ).join(Order, OrderItem.order_id == Order.id).filter(
+        Order.status != OrderStatus.CANCELLED
+    ).group_by(OrderItem.product_id, OrderItem.product_name_fr).order_by(
+        desc("revenue")
+    ).limit(6).all()
+
+    top_products = [
+        {
+            "product_id": item.product_id,
+            "name": item.product_name_fr,
+            "units_sold": int(item.units),
+            "revenue": float(item.revenue)
+        } for item in top_items
+    ]
+
+    return {
+        "categories": category_stats,
+        "top_products": top_products
+    }
+
+# ==========================================
+# 10. PARAMÈTRES & UTILISATEURS AUTORISÉS
+# ==========================================
+@router.get("/settings")
+def get_admin_settings(
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user)
+):
+    staff_users = db.query(User).filter(User.role != UserRole.CUSTOMER).all()
+    return {
+        "store": {
+            "name": "AVELOR MAISON",
+            "tagline": "Haute Couture & Prêt-à-Porter d'Exception",
+            "currency": "MAD",
+            "contact_email": "conciergerie@avelor.ma",
+            "contact_phone": "+212 5 22 00 00 00",
+            "standard_shipping_fee": 40.0,
+            "free_shipping_threshold": 1000.0,
+            "return_policy_days": 14,
+            "cod_enabled": True,
+            "maintenance_mode": False
+        },
+        "authorized_users": [
+            {
+                "id": u.id,
+                "email": u.email,
+                "name": f"{u.first_name or ''} {u.last_name or ''}".strip() or u.email,
+                "role": u.role,
+                "is_active": u.is_active,
+                "created_at": u.created_at
+            } for u in staff_users
+        ]
+    }
+
+@router.put("/settings")
+def update_admin_settings(
+    data: dict,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user)
+):
+    AuditService.log(
+        db=db,
+        action="UPDATE_STORE_SETTINGS",
+        entity="StoreSettings",
+        entity_id="global",
+        user_id=admin.id,
+        details="Mise à jour des paramètres boutique et expédition"
+    )
+    db.commit()
+    return {"message": "Paramètres enregistrés avec succès", "updated_at": datetime.now(timezone.utc).isoformat()}
+

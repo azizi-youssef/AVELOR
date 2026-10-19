@@ -105,6 +105,8 @@ def update_current_user(
         current_user.phone = user_update.phone
     if user_update.password:
         current_user.hashed_password = get_password_hash(user_update.password)
+    if user_update.avatar_url is not None:
+        current_user.avatar_url = user_update.avatar_url if user_update.avatar_url.strip() else None
 
     db.commit()
     db.refresh(current_user)

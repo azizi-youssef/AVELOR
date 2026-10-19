@@ -1,7 +1,7 @@
 # AVELOR — Maison de Haute Couture & Prêt-à-Porter de Luxe
 
 <p align="center">
-  <img src="frontend/public/logo.jpeg" alt="AVELOR Luxury Fashion" width="220" />
+  <img src="frontend/public/logo.jpeg" alt="AVELOR Luxury Fashion" width="200" />
 </p>
 
 <p align="center">
@@ -20,6 +20,10 @@
   <img src="https://img.shields.io/badge/Devise-MAD_(Dirhams)-D4AF37?style=flat-square" alt="Devise MAD" />
 </p>
 
+
+<p align="center">
+  <img src="frontend/public/UI.png" alt="AVELOR Luxury Fashion" width="560" />
+</p>
 ---
 
 ## 📖 Sommaire

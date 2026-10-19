@@ -88,7 +88,7 @@ export default function CartPage() {
                 key={item.variant.id}
                 className="flex gap-4 sm:gap-6 py-6 border-b border-neutral-200 items-start"
               >
-                <div className="relative w-24 sm:w-28 aspect-[3/4] flex-shrink-0 bg-neutral-100 overflow-hidden">
+                <div className="relative w-24 sm:w-28 aspect-3/4 shrink-0 bg-neutral-100 overflow-hidden">
                   <Image
                     src={coverImage}
                     alt={name}

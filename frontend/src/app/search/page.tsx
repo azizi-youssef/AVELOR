@@ -44,7 +44,7 @@ function SearchContent() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="animate-pulse space-y-3">
-              <div className="aspect-[3/4] bg-neutral-100 w-full" />
+              <div className="aspect-3/4 bg-neutral-100 w-full" />
               <div className="h-3 bg-neutral-100 w-3/4" />
             </div>
           ))}

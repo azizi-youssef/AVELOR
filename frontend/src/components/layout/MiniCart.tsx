@@ -118,89 +118,105 @@ export function MiniCart({ open, onClose }: MiniCartProps) {
             </div>
           ) : (
             <ul className="space-y-5 divide-y divide-neutral-100">
-              {items.map((item) => {
-                const name = isArabic ? item.product.name_ar : item.product.name_fr;
-                const price = item.product.discount_price
-                  ? Number(item.product.discount_price)
-                  : Number(item.product.base_price);
-                const coverImage =
-                  item.product.images && item.product.images.length > 0
-                    ? item.product.images.find((img) => img.is_cover)?.url || item.product.images[0].url
-                    : "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?q=80&w=400";
+              <AnimatePresence initial={false}>
+                {items.map((item) => {
+                  const name = isArabic ? item.product.name_ar : item.product.name_fr;
+                  const price = item.product.discount_price
+                    ? Number(item.product.discount_price)
+                    : Number(item.product.base_price);
+                  const coverImage =
+                    item.product.images && item.product.images.length > 0
+                      ? item.product.images.find((img) => img.is_cover)?.url || item.product.images[0].url
+                      : "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?q=80&w=400";
 
-                return (
-                  <li key={item.variant.id} className="flex gap-4 pt-5 first:pt-0">
-                    {/* Image */}
-                    <Link
-                      href={`/products/${item.product.slug}`}
-                      onClick={onClose}
-                      className="relative w-20 aspect-3/4 shrink-0 overflow-hidden bg-neutral-100 border border-neutral-100"
+                  return (
+                    <motion.li
+                      key={item.variant.id}
+                      layout
+                      initial={{ opacity: 0, height: 0, y: -10 }}
+                      animate={{ opacity: 1, height: "auto", y: 0 }}
+                      exit={{ opacity: 0, height: 0, scale: 0.92, transition: { duration: 0.25 } }}
+                      className="flex gap-4 pt-5 first:pt-0 overflow-hidden"
                     >
-                      <Image
-                        src={coverImage}
-                        alt={name}
-                        fill
-                        sizes="80px"
-                        className="object-cover object-top"
-                      />
-                    </Link>
-
-                    {/* Infos produit */}
-                    <div className="flex-1 min-w-0 space-y-1.5">
+                      {/* Image */}
                       <Link
                         href={`/products/${item.product.slug}`}
                         onClick={onClose}
-                        className="text-xs font-semibold text-black uppercase tracking-wider hover:underline line-clamp-2"
+                        className="relative w-20 aspect-3/4 shrink-0 overflow-hidden bg-neutral-100 border border-neutral-100"
                       >
-                        {name}
+                        <Image
+                          src={coverImage}
+                          alt={name}
+                          fill
+                          sizes="80px"
+                          className="object-cover object-top"
+                        />
                       </Link>
 
-                      <div className="flex items-center gap-2 text-[10px] text-neutral-500 uppercase tracking-wider">
-                        <span>{isArabic ? "Ø§Ù„Ù…Ù‚Ø§Ø³" : "Taille"} : {item.variant.size}</span>
-                        <span>Â·</span>
-                        <div
-                          className="w-3 h-3 rounded-full border border-neutral-300 shrink-0"
-                          style={{ backgroundColor: item.variant.color_code }}
-                          title={isArabic ? item.variant.color_name_ar : item.variant.color_name_fr}
-                        />
-                        <span>{isArabic ? item.variant.color_name_ar : item.variant.color_name_fr}</span>
-                      </div>
+                      {/* Infos produit */}
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <Link
+                          href={`/products/${item.product.slug}`}
+                          onClick={onClose}
+                          className="text-xs font-semibold text-black uppercase tracking-wider hover:underline line-clamp-2"
+                        >
+                          {name}
+                        </Link>
 
-                      <p className="text-xs font-bold text-black">
-                        {(price * item.quantity).toLocaleString("fr-MA")} {t.product.mad}
-                      </p>
+                        <div className="flex items-center gap-2 text-[10px] text-neutral-500 uppercase tracking-wider">
+                          <span>{isArabic ? "المقاس" : "Taille"} : {item.variant.size}</span>
+                          <span>·</span>
+                          <div
+                            className="w-3 h-3 rounded-full border border-neutral-300 shrink-0"
+                            style={{ backgroundColor: item.variant.color_code }}
+                            title={isArabic ? item.variant.color_name_ar : item.variant.color_name_fr}
+                          />
+                          <span>{isArabic ? item.variant.color_name_ar : item.variant.color_name_fr}</span>
+                        </div>
 
-                      {/* ContrÃ´le quantitÃ© */}
-                      <div className="flex items-center gap-2 pt-1">
-                        <button
-                          onClick={() => updateQuantity(item.variant.id, item.quantity - 1)}
-                          disabled={item.quantity <= 1}
-                          aria-label={isArabic ? "ØªÙ‚Ù„ÙŠÙ„ Ø§Ù„ÙƒÙ…ÙŠØ©" : "Diminuer la quantitÃ©"}
-                          className="flex h-6 w-6 items-center justify-center border border-neutral-200 text-neutral-600 hover:border-black hover:text-black transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          <Minus className="h-3 w-3" strokeWidth={2} />
-                        </button>
-                        <span className="w-5 text-center text-xs font-semibold">{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(item.variant.id, item.quantity + 1)}
-                          disabled={item.quantity >= item.variant.stock}
-                          aria-label={isArabic ? "Ø²ÙŠØ§Ø¯Ø© Ø§Ù„ÙƒÙ…ÙŠØ©" : "Augmenter la quantitÃ©"}
-                          className="flex h-6 w-6 items-center justify-center border border-neutral-200 text-neutral-600 hover:border-black hover:text-black transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          <Plus className="h-3 w-3" strokeWidth={2} />
-                        </button>
-                        <button
-                          onClick={() => removeItem(item.variant.id)}
-                          aria-label={isArabic ? "Ø­Ø°Ù" : "Supprimer"}
-                          className="ms-auto flex h-6 w-6 items-center justify-center text-neutral-400 hover:text-black transition-colors"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
-                        </button>
+                        <p className="text-xs font-bold text-black">
+                          {(price * item.quantity).toLocaleString("fr-MA")} {t.product.mad}
+                        </p>
+
+                        {/* Contrôle quantité */}
+                        <div className="flex items-center gap-2 pt-1">
+                          <motion.button
+                            type="button"
+                            whileTap={{ scale: 0.88 }}
+                            onClick={() => updateQuantity(item.variant.id, item.quantity - 1)}
+                            disabled={item.quantity <= 1}
+                            aria-label={isArabic ? "تقليل الكمية" : "Diminuer la quantité"}
+                            className="flex h-6 w-6 items-center justify-center border border-neutral-200 text-neutral-600 hover:border-black hover:text-black transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            <Minus className="h-3 w-3" strokeWidth={2} />
+                          </motion.button>
+                          <span className="w-5 text-center text-xs font-semibold">{item.quantity}</span>
+                          <motion.button
+                            type="button"
+                            whileTap={{ scale: 0.88 }}
+                            onClick={() => updateQuantity(item.variant.id, item.quantity + 1)}
+                            disabled={item.quantity >= item.variant.stock}
+                            aria-label={isArabic ? "زيادة الكمية" : "Augmenter la quantité"}
+                            className="flex h-6 w-6 items-center justify-center border border-neutral-200 text-neutral-600 hover:border-black hover:text-black transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            <Plus className="h-3 w-3" strokeWidth={2} />
+                          </motion.button>
+                          <motion.button
+                            type="button"
+                            whileHover={{ scale: 1.15 }}
+                            whileTap={{ scale: 0.88 }}
+                            onClick={() => removeItem(item.variant.id)}
+                            aria-label={isArabic ? "حذف" : "Supprimer"}
+                            className="ms-auto flex h-6 w-6 items-center justify-center text-neutral-400 hover:text-black transition-colors"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+                          </motion.button>
+                        </div>
                       </div>
-                    </div>
-                  </li>
-                );
-              })}
+                    </motion.li>
+                  );
+                })}
+              </AnimatePresence>
             </ul>
           )}
         </div>

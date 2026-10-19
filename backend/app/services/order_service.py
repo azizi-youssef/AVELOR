@@ -167,11 +167,18 @@ class OrderService:
         db.add(shipment)
 
         # 8. Création du paiement
+        is_online_card = order_in.payment_method == PaymentMethod.ONLINE_CARD
+        if is_online_card:
+            order.status = OrderStatus.CONFIRMED
+            order.payment_status = PaymentStatus.PAID
+
         payment = Payment(
             order_id=order.id,
-            provider=order_in.payment_method.value,
+            provider="CMI / Carte Bancaire" if is_online_card else order_in.payment_method.value,
+            transaction_id=f"CMI-{uuid.uuid4().hex[:10].upper()}" if is_online_card else None,
             amount=total_amount,
-            status=PaymentStatus.PENDING
+            status=PaymentStatus.PAID if is_online_card else PaymentStatus.PENDING,
+            payment_date=datetime.now(timezone.utc).replace(tzinfo=None) if is_online_card else None
         )
         db.add(payment)
 

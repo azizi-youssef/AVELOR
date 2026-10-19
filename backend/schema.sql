@@ -337,7 +337,7 @@ ON CONFLICT (sku) DO NOTHING;
 -- Images Produits
 INSERT INTO product_images (product_id, url, alt_text_fr, alt_text_ar, is_cover, sort_order) VALUES
 (1, 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?q=80&w=1000&auto=format&fit=crop', 'Costume noir vue 1', 'بدلة سوداء', TRUE, 0),
-(2, 'https://images.unsplash.com/photo-1620012253295-c15c429f66bf?q=80&w=1000&auto=format&fit=crop', 'Chemise blanche vue 1', 'قميص أبيض', TRUE, 0),
+(2, 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?q=80&w=1000&auto=format&fit=crop', 'Chemise blanche vue 1', 'قميص أبيض', TRUE, 0),
 (3, 'https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?q=80&w=1000&auto=format&fit=crop', 'Mocassins vue 1', 'حذاء لوفر', TRUE, 0),
 (4, 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=1000&auto=format&fit=crop', 'Sac voyage vue 1', 'حقيبة سفر', TRUE, 0),
 (5, 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?q=80&w=1000&auto=format&fit=crop', 'Robe émeraude vue 1', 'فستان زمردي', TRUE, 0),

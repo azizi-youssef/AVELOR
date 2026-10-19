@@ -13,6 +13,7 @@ interface AuthContextType {
   register: (data: any) => Promise<void>;
   loginWithOAuth: (provider: "google" | "github") => Promise<void>;
   setAuthSession: (token: string, user: User) => void;
+  updateProfile: (data: { first_name?: string; last_name?: string; phone?: string; password?: string; avatar_url?: string | null }) => Promise<User>;
   logout: () => void;
   isAdmin: boolean;
 }
@@ -65,6 +66,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signInWithProvider(provider);
   };
 
+  const updateProfile = async (data: { first_name?: string; last_name?: string; phone?: string; password?: string; avatar_url?: string | null }) => {
+    const updated = await api.updateMe(data);
+    setUser(updated);
+    return updated;
+  };
+
   const logout = () => {
     localStorage.removeItem("avelor_token");
     setToken(null);
@@ -84,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         loginWithOAuth,
         setAuthSession,
+        updateProfile,
         logout,
         isAdmin,
       }}

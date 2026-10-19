@@ -16,7 +16,7 @@ class User(Base):
     first_name = Column(String(100), nullable=True)
     last_name = Column(String(100), nullable=True)
     phone = Column(String(30), nullable=True)
-    avatar_url = Column(String(500), nullable=True)  # Photo de profil OAuth
+    avatar_url = Column(Text, nullable=True)  # Photo de profil ou avatar
     oauth_provider = Column(String(50), nullable=True)  # 'google', 'github', etc.
     oauth_id = Column(String(255), nullable=True, index=True)  # ID unique chez le fournisseur
     role = Column(SQLEnum(UserRole, name="user_role"), default=UserRole.CUSTOMER, nullable=False)

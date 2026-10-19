@@ -9,6 +9,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { MiniCart } from "@/components/layout/MiniCart";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ShoppingBag,
   UserRound,
@@ -79,6 +80,21 @@ interface CatalogueData {
 /* -------------------------------------------------------------------------- */
 /*                                    DATA                                    */
 /* -------------------------------------------------------------------------- */
+
+const HEADER_CATEGORIES: Record<Universe, Array<{ slug: string; name_fr: string; name_ar: string }>> = {
+  MEN: [
+    { slug: "homme-costumes", name_fr: "Costumes & Blazers", name_ar: "بدلات وسترات" },
+    { slug: "homme-chemises", name_fr: "Chemises de Luxe", name_ar: "قمصان فاخرة" },
+    { slug: "homme-chaussures", name_fr: "Chaussures & Derbies", name_ar: "أحذية وموكاسان" },
+    { slug: "homme-accessoires", name_fr: "Sacs & Maroquinerie", name_ar: "حقائب وجلديات" },
+  ],
+  WOMEN: [
+    { slug: "femme-robes", name_fr: "Robes & Soirée", name_ar: "فساتين وسهرة" },
+    { slug: "femme-blazers", name_fr: "Tailleurs & Blazers", name_ar: "سترات وبدلات" },
+    { slug: "femme-sacs", name_fr: "Sacs à Main", name_ar: "حقائب يد جلدية" },
+    { slug: "femme-chaussures", name_fr: "Escarpins & Talons", name_ar: "أحذية كعب عالي" },
+  ],
+};
 
 const CATALOGUES: Record<Universe, CatalogueData> = {
   MEN: {
@@ -243,12 +259,16 @@ function CatalogueIcon({ name }: { name: IconName }) {
 function CountBadge({ count, max }: { count: number; max: number }) {
   if (count <= 0) return null;
   return (
-    <span
+    <motion.span
+      key={count}
+      initial={{ scale: 0.6 }}
+      animate={{ scale: 1 }}
+      transition={{ type: "spring", stiffness: 500, damping: 25 }}
       aria-hidden="true"
-      className="absolute inset-e-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[9px] font-semibold leading-none text-white"
+      className="absolute inset-e-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[9px] font-semibold leading-none text-white shadow-xs"
     >
       {count > max ? `${max}+` : count}
-    </span>
+    </motion.span>
   );
 }
 
@@ -453,8 +473,16 @@ export function Header() {
     if (searchOpen) mobileSearchRef.current?.focus();
   }, [searchOpen]);
 
+  const currentUniverse: Universe =
+    pathname.startsWith("/femme") || pathname.includes("/categories/femme-") ? "WOMEN" : "MEN";
+  const categoriesForBar = HEADER_CATEGORIES[currentUniverse];
+
   const megaOpen = Boolean(activeCatData);
   const overlayVisible = megaOpen || userDropdownOpen;
+
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   return (
     <>
@@ -489,11 +517,10 @@ export function Header() {
         )}
 
         <div
-          className={`relative z-10 bg-white/95 backdrop-blur-md transition-shadow duration-300 ${
-            scrolled && !megaOpen
+          className={`relative z-10 bg-white/95 backdrop-blur-md transition-shadow duration-300 ${scrolled && !megaOpen
               ? "shadow-[0_2px_15px_rgba(0,0,0,0.06)] border-b border-neutral-200/60"
               : "border-b border-neutral-200/80"
-          }`}
+            }`}
         >
           {/* 2. Barre principale : hauteur stable, zéro reflow ni secousse */}
           <div className="mx-auto max-w-360 px-4 sm:px-6 lg:px-10">
@@ -503,37 +530,49 @@ export function Header() {
                 aria-label={isArabic ? "التنقل الرئيسي" : "Navigation principale"}
                 className="hidden items-center gap-4 lg:flex xl:gap-7"
               >
-                {UNIVERSES.map((universe) => {
-                  const active = activeCatalogue === universe;
-                  return (
-                    <button
-                      key={universe}
-                      type="button"
-                      onClick={() => toggleCatalogue(universe)}
-                      aria-expanded={active}
-                      aria-haspopup="true"
-                      aria-controls="avelor-mega-catalogue"
-                      className={`group flex items-center gap-1.5 border-b-2 py-2 text-[11px] uppercase tracking-[0.19em] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-4 ${active
-                        ? "border-black font-semibold text-black"
-                        : "border-transparent font-medium text-neutral-700 hover:text-black"
-                        }`}
-                    >
-                      <span>{universe === "MEN" ? t.nav.men : t.nav.women}</span>
-                      <ChevronDown
-                        aria-hidden="true"
-                        className={`h-3 w-3 transition-transform duration-200 group-hover:text-black ${active ? "rotate-180 text-black" : "text-neutral-400"
-                          }`}
-                      />
-                    </button>
-                  );
-                })}
+                {/* Accès direct 1-clic aux univers Homme et Femme avec curseur animé */}
+                <Link
+                  href="/homme"
+                  onClick={closeMenus}
+                  className={`group relative py-2 text-[11px] uppercase tracking-[0.22em] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-4 ${pathname.startsWith("/homme")
+                      ? "font-bold text-black"
+                      : "font-medium text-neutral-600 hover:text-black"
+                    }`}
+                >
+                  <span>{isArabic ? "رجال" : "Hommes"}</span>
+                  {pathname.startsWith("/homme") && (
+                    <motion.span
+                      layoutId="activeUniverseIndicator"
+                      className="absolute bottom-0 inset-x-0 h-0.5 bg-black"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                </Link>
 
                 <Link
-                  href="/homme?is_new=true"
+                  href="/femme"
                   onClick={closeMenus}
-                  className="relative py-2 text-[11px] font-medium uppercase tracking-[0.19em] text-neutral-700 transition-colors duration-200 after:absolute after:bottom-0 after:inset-s-0 after:h-px after:w-0 after:bg-black after:transition-all after:duration-300 hover:text-black hover:after:w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-4"
+                  className={`group relative py-2 text-[11px] uppercase tracking-[0.22em] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-4 ${pathname.startsWith("/femme")
+                      ? "font-bold text-black"
+                      : "font-medium text-neutral-600 hover:text-black"
+                    }`}
                 >
-                  {t.nav.new_in}
+                  <span>{isArabic ? "نساء" : "Femmes"}</span>
+                  {pathname.startsWith("/femme") && (
+                    <motion.span
+                      layoutId="activeUniverseIndicator"
+                      className="absolute bottom-0 inset-x-0 h-0.5 bg-black"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                </Link>
+
+                <Link
+                  href={pathname.startsWith("/femme") ? "/femme?is_new=true" : "/homme?is_new=true"}
+                  onClick={closeMenus}
+                  className="relative py-2 text-[11px] font-medium uppercase tracking-[0.19em] text-neutral-600 transition-colors duration-200 after:absolute after:bottom-0 after:inset-s-0 after:h-px after:w-0 after:bg-black after:transition-all after:duration-300 hover:text-black hover:after:w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-4"
+                >
+                  {isArabic ? "جديدنا" : "Nouveautés"}
                 </Link>
               </nav>
 
@@ -572,11 +611,11 @@ export function Header() {
                 <Image
                   src="/logo.png"
                   alt="AVELOR"
-                  width={160}
-                  height={118}
+                  width={240}
+                  height={177}
                   priority
-                  sizes="(max-width: 640px) 120px, 160px"
-                  className="h-9 w-auto max-w-30 object-contain transition-opacity duration-300 group-hover:opacity-75 sm:h-11 sm:max-w-38"
+                  sizes="(max-width: 640px) 160px, (max-width: 1024px) 190px, 220px"
+                  className="h-12 w-auto max-w-none object-contain transition-opacity duration-300 group-hover:opacity-75 sm:h-14 lg:h-16"
                 />
               </Link>
 
@@ -651,62 +690,68 @@ export function Header() {
                         />
                       </button>
 
-                      {userDropdownOpen && (
-                        <div
-                          role="menu"
-                          className="absolute inset-e-0 top-full z-50 mt-3 w-60 border border-neutral-200 bg-white py-2 shadow-[0_14px_40px_rgba(0,0,0,0.10)] animate-in fade-in slide-in-from-top-1 duration-150"
-                        >
-                          <div className="border-b border-neutral-100 px-4 py-3">
-                            <p className="text-[9px] uppercase tracking-[0.16em] text-neutral-400">
-                              {isArabic ? "مسجّل الدخول باسم" : "Connecté en tant que"}
-                            </p>
-                            <p className="mt-1 truncate text-xs font-medium text-neutral-900">
-                              {user.first_name || user.email}
-                            </p>
-                          </div>
-                          <Link
-                            href="/account"
-                            role="menuitem"
-                            onClick={closeMenus}
-                            className="flex items-center gap-3 px-4 py-3 text-xs text-neutral-700 transition-colors hover:bg-neutral-50 hover:text-black"
+                      <AnimatePresence>
+                        {userDropdownOpen && (
+                          <motion.div
+                            role="menu"
+                            initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                            className="absolute inset-e-0 top-full z-50 mt-3 w-60 border border-neutral-200 bg-white py-2 shadow-[0_14px_40px_rgba(0,0,0,0.10)]"
                           >
-                            <UserRound aria-hidden="true" className="h-4 w-4" strokeWidth={1.5} />
-                            {t.nav.account}
-                          </Link>
-                          <Link
-                            href="/wishlist"
-                            role="menuitem"
-                            onClick={closeMenus}
-                            className="flex items-center gap-3 px-4 py-3 text-xs text-neutral-700 transition-colors hover:bg-neutral-50 hover:text-black"
-                          >
-                            <Heart aria-hidden="true" className="h-4 w-4" strokeWidth={1.5} />
-                            {isArabic ? "قائمة الأمنيات" : "Mes favoris"}
-                          </Link>
-                          {isAdmin && (
+                            <div className="border-b border-neutral-100 px-4 py-3">
+                              <p className="text-[9px] uppercase tracking-[0.16em] text-neutral-400">
+                                {isArabic ? "مسجّل الدخول باسم" : "Connecté en tant que"}
+                              </p>
+                              <p className="mt-1 truncate text-xs font-medium text-neutral-900">
+                                {user.first_name || user.email}
+                              </p>
+                            </div>
                             <Link
-                              href="/admin"
+                              href="/account"
                               role="menuitem"
                               onClick={closeMenus}
-                              className="flex items-center gap-3 px-4 py-3 text-xs font-medium text-neutral-900 transition-colors hover:bg-neutral-50"
+                              className="flex items-center gap-3 px-4 py-3 text-xs text-neutral-700 transition-colors hover:bg-neutral-50 hover:text-black"
                             >
-                              <LayoutDashboard aria-hidden="true" className="h-4 w-4" strokeWidth={1.5} />
-                              {t.nav.admin}
+                              <UserRound aria-hidden="true" className="h-4 w-4" strokeWidth={1.5} />
+                              {t.nav.account}
                             </Link>
-                          )}
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => {
-                              closeMenus();
-                              logout();
-                            }}
-                            className="flex w-full items-center gap-3 border-t border-neutral-100 px-4 py-3 text-start text-xs text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-black"
-                          >
-                            <LogOut aria-hidden="true" className="h-4 w-4" strokeWidth={1.5} />
-                            {isArabic ? "تسجيل الخروج" : "Déconnexion"}
-                          </button>
-                        </div>
-                      )}
+                            <Link
+                              href="/wishlist"
+                              role="menuitem"
+                              onClick={closeMenus}
+                              className="flex items-center gap-3 px-4 py-3 text-xs text-neutral-700 transition-colors hover:bg-neutral-50 hover:text-black"
+                            >
+                              <Heart aria-hidden="true" className="h-4 w-4" strokeWidth={1.5} />
+                              {isArabic ? "قائمة الأمنيات" : "Mes favoris"}
+                            </Link>
+                            {isAdmin && (
+                              <Link
+                                href="/admin"
+                                role="menuitem"
+                                onClick={closeMenus}
+                                className="flex items-center gap-3 px-4 py-3 text-xs font-medium text-neutral-900 transition-colors hover:bg-neutral-50"
+                              >
+                                <LayoutDashboard aria-hidden="true" className="h-4 w-4" strokeWidth={1.5} />
+                                {t.nav.admin}
+                              </Link>
+                            )}
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() => {
+                                closeMenus();
+                                logout();
+                              }}
+                              className="flex w-full items-center gap-3 border-t border-neutral-100 px-4 py-3 text-start text-xs text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-black"
+                            >
+                              <LogOut aria-hidden="true" className="h-4 w-4" strokeWidth={1.5} />
+                              {isArabic ? "تسجيل الخروج" : "Déconnexion"}
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </>
                   ) : (
                     <Link
@@ -752,35 +797,117 @@ export function Header() {
             </div>
           </div>
 
-          {/* Panneau de recherche compact (< XL) */}
-          {searchOpen && (
-            <div
-              id="avelor-search-panel"
-              className="border-t border-neutral-100 bg-white px-4 py-3 animate-in fade-in slide-in-from-top-1 duration-150 sm:px-6 lg:px-10 xl:hidden"
-            >
-              <form onSubmit={handleSearch} role="search" className="relative mx-auto max-w-2xl">
-                <label htmlFor="compact-header-search" className="sr-only">
-                  {t.nav.search_placeholder}
-                </label>
-                <input
-                  ref={mobileSearchRef}
-                  id="compact-header-search"
-                  type="search"
-                  placeholder={t.nav.search_placeholder}
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  className="h-11 w-full border border-neutral-200 bg-neutral-50 px-4 pe-11 text-sm outline-none transition-colors placeholder:text-neutral-400 focus:border-black"
-                />
-                <button
-                  type="submit"
-                  aria-label={isArabic ? "بحث" : "Rechercher"}
-                  className="absolute inset-e-3 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-black"
-                >
-                  <Search className="h-4 w-4" strokeWidth={1.5} />
-                </button>
-              </form>
+          {/* 3. BARRE DE CATÉGORIES (Category Options Bar) — chaque catégorie mène à sa page dédiée */}
+          <div className="border-t border-neutral-100 bg-neutral-50/75">
+            <div className="mx-auto max-w-360 px-4 sm:px-6 lg:px-10">
+              <nav
+                aria-label={isArabic ? "تصنيفات الموضة" : "Catégories"}
+                className="flex items-center justify-between gap-3 py-1.5"
+              >
+                {/* Liens vers chaque page de catégorie avec curseur glissant fluide */}
+                <div className="flex items-center gap-1.5 sm:gap-2.5 overflow-x-auto no-scrollbar py-0.5">
+                  {(() => {
+                    const isAllActive = pathname === (currentUniverse === "WOMEN" ? "/femme" : "/homme");
+                    return (
+                      <Link
+                        href={currentUniverse === "WOMEN" ? "/femme" : "/homme"}
+                        onClick={closeMenus}
+                        className={`relative shrink-0 px-3 py-1 text-[10px] sm:text-[11px] uppercase tracking-wider transition-colors ${isAllActive ? "text-white font-bold" : "text-neutral-600 hover:text-black hover:bg-neutral-200/50"
+                          }`}
+                      >
+                        {isAllActive && (
+                          <motion.span
+                            layoutId="activeCategoryBarPill"
+                            className="absolute inset-0 bg-black shadow-xs z-0"
+                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                          />
+                        )}
+                        <span className="relative z-10">{isArabic ? "الكل" : "Tout"}</span>
+                      </Link>
+                    );
+                  })()}
+
+                  {categoriesForBar.map((cat) => {
+                    const isActive = pathname === `/categories/${cat.slug}`;
+                    return (
+                      <Link
+                        key={cat.slug}
+                        href={`/categories/${cat.slug}`}
+                        onClick={closeMenus}
+                        className={`relative shrink-0 px-3 py-1 text-[10px] sm:text-[11px] uppercase tracking-wider whitespace-nowrap transition-colors ${isActive ? "text-white font-bold" : "text-neutral-600 hover:text-black hover:bg-neutral-200/50"
+                          }`}
+                      >
+                        {isActive && (
+                          <motion.span
+                            layoutId="activeCategoryBarPill"
+                            className="absolute inset-0 bg-black shadow-xs z-0"
+                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                          />
+                        )}
+                        <span className="relative z-10">{isArabic ? cat.name_ar : cat.name_fr}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                {/* Lien rapide de basculement d'univers */}
+                <div className="hidden lg:flex items-center shrink-0 ps-3 border-s border-neutral-200 text-[10px] uppercase tracking-widest text-neutral-400">
+                  <Link
+                    href={currentUniverse === "WOMEN" ? "/homme" : "/femme"}
+                    onClick={closeMenus}
+                    className="flex items-center gap-1 text-neutral-500 hover:text-black transition-colors"
+                  >
+                    <span>
+                      {currentUniverse === "WOMEN"
+                        ? isArabic
+                          ? "إلى قسم الرجال"
+                          : "Univers Homme"
+                        : isArabic
+                          ? "إلى قسم النساء"
+                          : "Univers Femme"}
+                    </span>
+                    <ArrowIcon className="h-2.5 w-2.5" />
+                  </Link>
+                </div>
+              </nav>
             </div>
-          )}
+          </div>
+
+          {/* Panneau de recherche compact (< XL) */}
+          <AnimatePresence>
+            {searchOpen && (
+              <motion.div
+                id="avelor-search-panel"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                className="overflow-hidden border-t border-neutral-100 bg-white px-4 py-3 sm:px-6 lg:px-10 xl:hidden"
+              >
+                <form onSubmit={handleSearch} role="search" className="relative mx-auto max-w-2xl">
+                  <label htmlFor="compact-header-search" className="sr-only">
+                    {t.nav.search_placeholder}
+                  </label>
+                  <input
+                    ref={mobileSearchRef}
+                    id="compact-header-search"
+                    type="search"
+                    placeholder={t.nav.search_placeholder}
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    className="h-11 w-full border border-neutral-200 bg-neutral-50 px-4 pe-11 text-sm outline-none transition-colors placeholder:text-neutral-400 focus:border-black"
+                  />
+                  <button
+                    type="submit"
+                    aria-label={isArabic ? "بحث" : "Rechercher"}
+                    className="absolute inset-e-3 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-black"
+                  >
+                    <Search className="h-4 w-4" strokeWidth={1.5} />
+                  </button>
+                </form>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* 3. Méga-menu catalogue (desktop) — ancré sous le header */}
@@ -918,6 +1045,44 @@ export function Header() {
             id="avelor-mobile-menu"
             className="relative z-10 max-h-[calc(100dvh-4.5rem)] overflow-y-auto overscroll-contain border-t border-neutral-200 bg-white px-4 pb-8 pt-4 shadow-lg animate-in fade-in slide-in-from-top-1 duration-150 lg:hidden"
           >
+            {/* Sélecteur direct d'univers 1-clic Mobile avec curseur fluide */}
+            <div className="grid grid-cols-2 gap-2 mb-4 p-1 bg-neutral-100 border border-neutral-200">
+              <Link
+                href="/homme"
+                onClick={closeMenus}
+                className={`relative flex items-center justify-center py-2.5 text-xs uppercase font-bold tracking-widest transition-colors ${pathname.startsWith("/homme")
+                    ? "text-white"
+                    : "text-neutral-700 hover:text-black"
+                  }`}
+              >
+                {pathname.startsWith("/homme") && (
+                  <motion.span
+                    layoutId="mobileUniverseSwitcherPill"
+                    className="absolute inset-0 bg-black shadow-xs z-0"
+                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                  />
+                )}
+                <span className="relative z-10">{isArabic ? "رجال" : "Hommes"}</span>
+              </Link>
+              <Link
+                href="/femme"
+                onClick={closeMenus}
+                className={`relative flex items-center justify-center py-2.5 text-xs uppercase font-bold tracking-widest transition-colors ${pathname.startsWith("/femme")
+                    ? "text-white"
+                    : "text-neutral-700 hover:text-black"
+                  }`}
+              >
+                {pathname.startsWith("/femme") && (
+                  <motion.span
+                    layoutId="mobileUniverseSwitcherPill"
+                    className="absolute inset-0 bg-black shadow-xs z-0"
+                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                  />
+                )}
+                <span className="relative z-10">{isArabic ? "نساء" : "Femmes"}</span>
+              </Link>
+            </div>
+
             <form onSubmit={handleSearch} role="search" className="relative mb-4">
               <label htmlFor="mobile-header-search" className="sr-only">
                 {t.nav.search_placeholder}

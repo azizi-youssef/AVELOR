@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import {
   ShieldCheck,
@@ -91,10 +92,10 @@ interface PillarProps {
 
 function Pillar({ icon: Icon, title, desc }: PillarProps) {
   return (
-    <div className="flex flex-col items-center space-y-2 text-center sm:items-start sm:text-start">
-      <Icon className="h-6 w-6 text-neutral-300" strokeWidth={1.5} aria-hidden="true" />
-      <h4 className="text-sm font-semibold uppercase tracking-wider text-neutral-100">{title}</h4>
-      <p className="text-xs leading-relaxed text-neutral-400">{desc}</p>
+    <div className="flex flex-col items-center space-y-1 text-center sm:items-start sm:text-start">
+      <Icon className="h-5 w-5 text-neutral-300" strokeWidth={1.5} aria-hidden="true" />
+      <h4 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-neutral-100">{title}</h4>
+      <p className="text-[11px] sm:text-xs leading-relaxed text-neutral-400">{desc}</p>
     </div>
   );
 }
@@ -134,7 +135,7 @@ function Newsletter({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       <ColumnTitle>{isArabic ? "النشرة الخاصة" : "Newsletter Privilège"}</ColumnTitle>
       <p className="text-xs leading-relaxed text-neutral-400">
         {isArabic
@@ -145,7 +146,7 @@ function Newsletter({
       {status === "success" ? (
         <p
           role="status"
-          className="flex items-center gap-2 border border-neutral-700 bg-neutral-900 px-3 py-3 text-xs text-neutral-200"
+          className="flex items-center gap-2 border border-neutral-700 bg-neutral-900 px-3 py-2 text-xs text-neutral-200"
         >
           <Check aria-hidden="true" className="h-4 w-4 shrink-0 text-white" />
           {isArabic ? "شكراً، تم تسجيل اشتراكك." : "Merci, votre inscription est confirmée."}
@@ -173,12 +174,12 @@ function Newsletter({
             placeholder={isArabic ? "بريدك الإلكتروني" : "Votre email"}
             aria-invalid={status === "error"}
             aria-describedby={status === "error" ? "newsletter-error" : undefined}
-            className="min-w-0 flex-1 border border-neutral-700 bg-neutral-900 px-3 py-2.5 text-xs text-white placeholder-neutral-500 transition-colors focus:border-white focus:outline-none"
+            className="min-w-0 flex-1 border border-neutral-700 bg-neutral-900 px-3 py-2 text-xs text-white placeholder-neutral-500 transition-colors focus:border-white focus:outline-none"
           />
           <button
             type="submit"
             disabled={status === "loading"}
-            className="flex shrink-0 items-center justify-center whitespace-nowrap bg-white px-4 text-xs font-semibold uppercase tracking-wider text-black transition-colors hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 disabled:opacity-70"
+            className="flex shrink-0 items-center justify-center whitespace-nowrap bg-white px-3.5 text-xs font-semibold uppercase tracking-wider text-black transition-colors hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 disabled:opacity-70"
           >
             {status === "loading" ? (
               <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
@@ -213,13 +214,18 @@ export function Footer({ onSubscribe }: FooterProps = {}) {
   const { language, t } = useLanguage();
   const isArabic = language === "ar";
   const [logoFailed, setLogoFailed] = useState(false);
+  const pathname = usePathname();
+
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   return (
     <footer dir={isArabic ? "rtl" : "ltr"} className="border-t border-neutral-800 bg-neutral-950 text-white">
       {/* Piliers */}
-      <div className="border-b border-neutral-800 py-12">
+      <div className="border-b border-neutral-800 py-7">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4 md:gap-8">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-5 md:grid-cols-4 md:gap-8">
             <Pillar icon={Truck} title={t.sections.free_shipping} desc={t.sections.free_shipping_desc} />
             <Pillar icon={ShieldCheck} title={t.sections.cash_on_delivery} desc={t.sections.cash_on_delivery_desc} />
             <Pillar icon={BadgeCheck} title={t.sections.authentic} desc={t.sections.authentic_desc} />
@@ -229,24 +235,26 @@ export function Footer({ onSubscribe }: FooterProps = {}) {
       </div>
 
       {/* Liens + newsletter */}
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1.3fr] lg:gap-10">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:py-12 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_1.2fr] lg:gap-8">
           {/* Marque */}
-          <div className="space-y-5">
+          <div className="space-y-3.5">
             <Link
               href="/"
               aria-label="AVELOR — Accueil"
               className="inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-neutral-950"
             >
               {logoFailed ? (
-                <span className="font-serif text-2xl font-bold tracking-[0.3em]">AVELOR</span>
+                <span className="font-serif text-xl font-bold tracking-[0.3em]">AVELOR</span>
               ) : (
                 <Image
                   src="/logo-white.png"
                   alt="AVELOR Luxury Fashion"
-                  width={170}
-                  height={125}
-                  className="h-14 w-auto object-contain sm:h-16"
+                  width={240}
+                  height={150}
+                  priority
+                  sizes="(max-width: 640px) 160px, (max-width: 1024px) 190px, 220px"
+                  className="h-12 w-auto max-w-none object-contain transition-opacity duration-300 group-hover:opacity-75 sm:h-14 lg:h-16"
                   onError={() => setLogoFailed(true)}
                 />
               )}
@@ -254,7 +262,7 @@ export function Footer({ onSubscribe }: FooterProps = {}) {
 
             <p className="max-w-sm text-xs leading-relaxed text-neutral-400">{t.footer.about_text}</p>
 
-            <ul className="space-y-2 text-xs text-neutral-400">
+            <ul className="space-y-1.5 text-xs text-neutral-400">
               <li className="flex items-center gap-2">
                 <MapPin aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
                 <span>{isArabic ? CONTACT.city_ar : CONTACT.city_fr}</span>
@@ -279,7 +287,7 @@ export function Footer({ onSubscribe }: FooterProps = {}) {
               </li>
             </ul>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 pt-1">
               {SOCIALS.map((s) => (
                 <a
                   key={s.name}
@@ -287,7 +295,7 @@ export function Footer({ onSubscribe }: FooterProps = {}) {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`AVELOR — ${s.name}`}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-700 text-neutral-400 transition-colors hover:border-white hover:text-white focus-visible:border-white focus-visible:text-white focus-visible:outline-none"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-700 text-neutral-400 transition-colors hover:border-white hover:text-white focus-visible:border-white focus-visible:text-white focus-visible:outline-none"
                 >
                   {s.icon}
                 </a>
@@ -296,9 +304,9 @@ export function Footer({ onSubscribe }: FooterProps = {}) {
           </div>
 
           {/* Univers */}
-          <nav aria-label={t.footer.universes} className="space-y-3">
+          <nav aria-label={t.footer.universes} className="space-y-2.5">
             <ColumnTitle>{t.footer.universes}</ColumnTitle>
-            <ul className="space-y-1.5 text-xs">
+            <ul className="space-y-1 text-xs">
               <li>
                 <Link href="/homme" className={linkClass}>
                   {t.nav.men}
@@ -320,9 +328,9 @@ export function Footer({ onSubscribe }: FooterProps = {}) {
           </nav>
 
           {/* Service client */}
-          <nav aria-label={t.footer.customer_service} className="space-y-3">
+          <nav aria-label={t.footer.customer_service} className="space-y-2.5">
             <ColumnTitle>{t.footer.customer_service}</ColumnTitle>
-            <ul className="space-y-1.5 text-xs">
+            <ul className="space-y-1 text-xs">
               <li>
                 <Link href="/account" className={linkClass}>
                   {t.nav.account}
@@ -362,7 +370,7 @@ export function Footer({ onSubscribe }: FooterProps = {}) {
         </div>
 
         {/* Bas de page */}
-        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-neutral-800 pt-8 text-xs text-neutral-500 sm:flex-row">
+        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-neutral-800 pt-5 text-xs text-neutral-500 sm:flex-row">
           <p>
             &copy; {new Date().getFullYear()} {t.footer.rights}
           </p>
@@ -375,7 +383,7 @@ export function Footer({ onSubscribe }: FooterProps = {}) {
             <button
               type="button"
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="inline-flex items-center gap-1.5 border border-neutral-700 px-3 py-2 uppercase tracking-wider text-neutral-300 transition-colors hover:border-white hover:text-white focus-visible:border-white focus-visible:outline-none"
+              className="inline-flex items-center gap-1.5 border border-neutral-700 px-2.5 py-1.5 text-[11px] uppercase tracking-wider text-neutral-300 transition-colors hover:border-white hover:text-white focus-visible:border-white focus-visible:outline-none"
             >
               <ArrowUp aria-hidden="true" className="h-3.5 w-3.5" />
               {isArabic ? "إلى الأعلى" : "Haut de page"}

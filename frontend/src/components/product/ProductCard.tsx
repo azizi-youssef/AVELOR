@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Heart } from "lucide-react";
+import { motion } from "framer-motion";
 import { Product } from "@/types";
 import { useLanguage } from "@/context/LanguageContext";
 import { useWishlist } from "@/context/WishlistContext";
@@ -37,28 +38,30 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   const inStock = product.variants.some((v) => v.stock > 0);
 
   return (
-    <article
-      className="group flex flex-col h-full bg-white"
+    <motion.article
+      whileHover={{ y: -4 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="group flex flex-col h-full bg-white transition-shadow duration-300 hover:shadow-[0_12px_28px_rgba(0,0,0,0.06)]"
       aria-label={name}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       {/* Image */}
-      <div className="relative aspect-[3/4] w-full overflow-hidden bg-neutral-100">
+      <div className="relative aspect-3/4 w-full overflow-hidden bg-neutral-100">
         <Link
           href={`/products/${product.slug}`}
-          className="block w-full h-full"
+          className="relative block w-full h-full"
           tabIndex={0}
           aria-label={name}
         >
-          {/* Image principale */}
+          {/* Image principale avec léger zoom fluide au survol */}
           <Image
             src={coverImage}
             alt={name}
             fill
             priority={priority}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className={`object-cover object-top transition-all duration-700 ease-out ${
+            className={`object-cover object-top transition-all duration-700 ease-out group-hover:scale-105 ${
               hoverImage && hovered ? "opacity-0" : "opacity-100"
             }`}
           />
@@ -70,56 +73,75 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               alt=""
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className={`object-cover object-top transition-opacity duration-700 ease-out absolute inset-0 ${
+              className={`object-cover object-top transition-all duration-700 ease-out group-hover:scale-105 absolute inset-0 ${
                 hovered ? "opacity-100" : "opacity-0"
               }`}
             />
           )}
         </Link>
 
-        {/* Badges */}
-        <div className="absolute top-2 start-2 flex flex-col gap-1 z-10 pointer-events-none">
+        {/* Badges avec micro-animation d'entrée */}
+        <div className="absolute top-2.5 inset-s-2.5 flex flex-col gap-1 z-10 pointer-events-none">
           {discountPrice && (
-            <span className="bg-black text-white text-[9px] font-bold uppercase tracking-wider px-2 py-0.5">
+            <span className="bg-black text-white text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 shadow-xs">
               -{discountPercent}%
             </span>
           )}
           {product.is_new && !discountPrice && (
-            <span className="bg-white/90 backdrop-blur-sm text-black text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 border border-neutral-200">
-              {language === "fr" ? "NOUVEAU" : "Ø¬Ø¯ÙŠØ¯"}
+            <span className="bg-white/95 backdrop-blur-sm text-black text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 border border-neutral-200/80 shadow-2xs">
+              {language === "fr" ? "NOUVEAU" : "جديد"}
             </span>
           )}
           {!inStock && (
-            <span className="bg-neutral-400 text-white text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5">
-              {language === "fr" ? "Ã‰PUISÃ‰" : "Ù†ÙØ°"}
+            <span className="bg-neutral-500/90 backdrop-blur-sm text-white text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5">
+              {language === "fr" ? "ÉPUISÉ" : "نفذ"}
             </span>
           )}
         </div>
 
-        {/* Wishlist button */}
-        <button
+        {/* Wishlist button interactif avec ressort physique */}
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.15 }}
+          whileTap={{ scale: 0.85 }}
           onClick={(e) => {
             e.preventDefault();
+            e.stopPropagation();
             toggleItem(product);
           }}
-          aria-label={wishlisted ? (language === "fr" ? "Retirer des favoris" : "Ø¥Ø²Ø§Ù„Ø© Ù…Ù† Ø§Ù„Ù…ÙØ¶Ù„Ø©") : (language === "fr" ? "Ajouter aux favoris" : "Ø£Ø¶Ù Ø¥Ù„Ù‰ Ø§Ù„Ù…ÙØ¶Ù„Ø©")}
-          aria-pressed={wishlisted}
-          className={`absolute top-2 end-2 z-10 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 ${
+          aria-label={
             wishlisted
-              ? "bg-black text-white opacity-100"
-              : "bg-white/80 backdrop-blur-sm text-neutral-600 opacity-0 group-hover:opacity-100"
+              ? language === "fr"
+                ? "Retirer des favoris"
+                : "إزالة من المفضلة"
+              : language === "fr"
+              ? "Ajouter aux favoris"
+              : "أضف إلى المفضلة"
+          }
+          aria-pressed={wishlisted}
+          className={`absolute top-2.5 inset-e-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 shadow-sm ${
+            wishlisted
+              ? "bg-black text-white opacity-100 scale-100"
+              : "bg-white/90 backdrop-blur-md text-neutral-600 opacity-0 group-hover:opacity-100"
           }`}
         >
-          <Heart
-            className="h-3.5 w-3.5"
-            strokeWidth={1.5}
-            fill={wishlisted ? "currentColor" : "none"}
-          />
-        </button>
+          <motion.div
+            key={wishlisted ? "active" : "inactive"}
+            initial={{ scale: 0.8 }}
+            animate={{ scale: wishlisted ? [1, 1.35, 1] : 1 }}
+            transition={{ duration: 0.28, ease: "easeOut" }}
+          >
+            <Heart
+              className="h-3.5 w-3.5"
+              strokeWidth={1.6}
+              fill={wishlisted ? "currentColor" : "none"}
+            />
+          </motion.div>
+        </motion.button>
       </div>
 
       {/* Infos produit */}
-      <div className="pt-3 pb-4 flex flex-col flex-1 justify-between" dir={language === "ar" ? "rtl" : "ltr"}>
+      <div className="pt-3 pb-4 px-1 flex flex-col flex-1 justify-between" dir={language === "ar" ? "rtl" : "ltr"}>
         <div className="space-y-1.5">
           {/* Pastilles couleurs */}
           {uniqueColors.length > 0 && (
@@ -127,7 +149,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               {uniqueColors.slice(0, 4).map((code, idx) => (
                 <span
                   key={idx}
-                  className="w-2.5 h-2.5 rounded-full border border-neutral-200 flex-shrink-0"
+                  className="w-2.5 h-2.5 rounded-full border border-neutral-300 shrink-0 transition-transform duration-200 hover:scale-130 cursor-pointer"
                   style={{ backgroundColor: code }}
                 />
               ))}
@@ -145,7 +167,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         </div>
 
         {/* Prix */}
-        <div className="mt-2 flex items-baseline gap-2">
+        <div className="mt-2.5 flex items-baseline gap-2">
           {discountPrice ? (
             <>
               <span className="text-xs sm:text-sm font-bold text-black">
@@ -162,7 +184,8 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           )}
         </div>
       </div>
-    </article>
+    </motion.article>
   );
 }
+
 

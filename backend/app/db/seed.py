@@ -129,7 +129,7 @@ def seed_database():
                 "is_featured": True,
                 "is_new": True,
                 "images": [
-                    "https://images.unsplash.com/photo-1620012253295-c15c429f66bf?q=80&w=1000&auto=format&fit=crop",
+                    "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?q=80&w=1000&auto=format&fit=crop",
                     "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?q=80&w=1000&auto=format&fit=crop"
                 ],
                 "variants": [

@@ -33,6 +33,7 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://avelor.ma"),
   title: {
     default: "AVELOR | Maison de mode au Maroc",
     template: "%s | AVELOR",

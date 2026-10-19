@@ -57,6 +57,8 @@ export const api = {
     return fetchApi<any[]>(`/categories${qs}`);
   },
 
+  getCategory: (slug: string) => fetchApi<any>(`/categories/${slug}`),
+
   // Campagnes bannières
   getCampaigns: (universe?: string) => {
     const qs = universe ? `?universe=${universe}` : "";
@@ -123,6 +125,12 @@ export const api = {
   },
 
   getMe: () => fetchApi<any>("/auth/me"),
+  updateMe: (data: { first_name?: string; last_name?: string; phone?: string; password?: string; avatar_url?: string | null }) => {
+    return fetchApi<any>("/auth/me", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
 
   // Administration
   getAdminStats: () => fetchApi<any>("/admin/dashboard/stats"),
@@ -156,10 +164,22 @@ export const api = {
       method: "DELETE",
     });
   },
+  updateOrder: (id: number, data: any) => {
+    return fetchApi<any>(`/admin/orders/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
   getAdminCampaigns: () => fetchApi<any[]>("/admin/campaigns"),
   createCampaign: (data: any) => {
     return fetchApi<any>("/admin/campaigns", {
       method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+  updateCampaign: (id: number, data: any) => {
+    return fetchApi<any>(`/admin/campaigns/${id}`, {
+      method: "PUT",
       body: JSON.stringify(data),
     });
   },
@@ -168,10 +188,10 @@ export const api = {
       method: "DELETE",
     });
   },
-  updateVariantStock: (variantId: number, stock: number) => {
+  updateVariantStock: (variantId: number, stock: number, reason?: string) => {
     return fetchApi<any>(`/admin/variants/${variantId}/stock`, {
       method: "PUT",
-      body: JSON.stringify({ stock }),
+      body: JSON.stringify({ stock, reason }),
     });
   },
   getAdminPromotions: () => fetchApi<any[]>("/admin/promotions"),
@@ -181,10 +201,44 @@ export const api = {
       body: JSON.stringify(data),
     });
   },
+  updatePromotion: (id: number, data: any) => {
+    return fetchApi<any>(`/admin/promotions/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
+  deletePromotion: (id: number) => {
+    return fetchApi<any>(`/admin/promotions/${id}`, {
+      method: "DELETE",
+    });
+  },
   togglePromotion: (id: number) => {
     return fetchApi<any>(`/admin/promotions/${id}/toggle`, {
       method: "PUT",
     });
   },
   getAuditLogs: () => fetchApi<any[]>("/admin/audit-logs"),
+  getAdminAuditLogs: () => fetchApi<any[]>("/admin/audit-logs"),
+  getAdminCustomers: (search?: string) => {
+    const q = search ? `?search=${encodeURIComponent(search)}` : "";
+    return fetchApi<any[]>(`/admin/customers${q}`);
+  },
+  getAdminInventory: (params?: { low_stock_only?: boolean; universe?: string; search?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.low_stock_only) searchParams.set("low_stock_only", "true");
+    if (params?.universe && params.universe !== "ALL") searchParams.set("universe", params.universe);
+    if (params?.search) searchParams.set("search", params.search);
+    const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
+    return fetchApi<any[]>(`/admin/inventory${qs}`);
+  },
+  getInventoryMovements: () => fetchApi<any[]>("/admin/inventory/movements"),
+  getAdminAnalytics: () => fetchApi<any>("/admin/analytics"),
+  getAdminSettings: () => fetchApi<any>("/admin/settings"),
+  updateAdminSettings: (data: any) => {
+    return fetchApi<any>("/admin/settings", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
 };
+
