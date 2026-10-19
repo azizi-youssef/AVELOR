@@ -1,7 +1,7 @@
 # AVELOR — Maison de Haute Couture & Prêt-à-Porter de Luxe
 
 <p align="center">
-  <img src="frontend/public/logo.png" alt="AVELOR Luxury Fashion" width="220" />
+  <img src="frontend/public/logo.jpeg" alt="AVELOR Luxury Fashion" width="220" />
 </p>
 
 <p align="center">
