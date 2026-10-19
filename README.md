@@ -1,7 +1,7 @@
 # AVELOR — Maison de Haute Couture & Prêt-à-Porter de Luxe
 
 <p align="center">
-  <img src="frontend/public/logo.jpeg" alt="AVELOR Luxury Fashion" width="200" />
+  <img src="frontend/public/logo-white.png" alt="AVELOR Luxury Fashion" width="200" />
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
 
 
 <p align="center">
-  <img src="frontend/public/UI.png" alt="AVELOR Luxury Fashion" width="560" />
+  <img src="frontend/public/UI.png" alt="Aperçu de l'interface CarDrive" width="900" style="border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.12);" />
 </p>
 ---
 
