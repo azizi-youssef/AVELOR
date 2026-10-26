@@ -76,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("avelor_token");
     setToken(null);
     setUser(null);
+    api.logout().catch(() => {});
     signOutSupabase().catch(() => {});
   };
 

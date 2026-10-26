@@ -17,6 +17,7 @@ import {
   CheckCircle,
   Archive,
 } from "lucide-react";
+import { ProductModal } from "./product-form/ProductModal";
 
 interface ProductsManagerProps {
   products: Product[];
@@ -47,109 +48,12 @@ export function ProductsManager({
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
-  // Form State
+  // État du produit en cours d'édition (ou null pour nouvelle création)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  const [formNameFr, setFormNameFr] = useState("");
-  const [formNameAr, setFormNameAr] = useState("");
-  const [formSku, setFormSku] = useState("");
-  const [formSlug, setFormSlug] = useState("");
-  const [formPrice, setFormPrice] = useState("");
-  const [formDiscount, setFormDiscount] = useState("");
-  const [formUniverse, setFormUniverse] = useState<"MEN" | "WOMEN">("MEN");
-  const [formCategoryId, setFormCategoryId] = useState("");
-  const [formIsNew, setFormIsNew] = useState(true);
-  const [formIsFeatured, setFormIsFeatured] = useState(false);
-  const [formSize, setFormSize] = useState("50");
-  const [formColor, setFormColor] = useState("Noir Sartorial");
-  const [formColorCode, setFormColorCode] = useState("#111111");
-  const [formStock, setFormStock] = useState("12");
-  const [formImageUrl, setFormImageUrl] = useState("");
 
   const handleOpenForm = (product?: Product) => {
-    if (product) {
-      setEditingProduct(product);
-      setFormNameFr(product.name_fr);
-      setFormNameAr(product.name_ar);
-      setFormSku(product.sku);
-      setFormSlug(product.slug);
-      setFormPrice(String(product.base_price));
-      setFormDiscount(product.discount_price ? String(product.discount_price) : "");
-      setFormUniverse(product.universe === "WOMEN" ? "WOMEN" : "MEN");
-      setFormCategoryId(String(product.category_id));
-      setFormIsNew(product.is_new);
-      setFormIsFeatured(product.is_featured);
-      setFormImageUrl(product.images?.[0]?.url || "");
-    } else {
-      setEditingProduct(null);
-      setFormNameFr("");
-      setFormNameAr("");
-      setFormSku("");
-      setFormSlug("");
-      setFormPrice("");
-      setFormDiscount("");
-      setFormUniverse("MEN");
-      setFormCategoryId(categories[0]?.id ? String(categories[0].id) : "1");
-      setFormIsNew(true);
-      setFormIsFeatured(false);
-      setFormSize("50");
-      setFormColor("Noir Sartorial");
-      setFormColorCode("#111111");
-      setFormStock("10");
-      setFormImageUrl("");
-    }
+    setEditingProduct(product || null);
     onOpenModal(product);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      if (editingProduct) {
-        await onUpdateProduct(editingProduct.id, {
-          name_fr: formNameFr.trim(),
-          name_ar: formNameAr.trim() || formNameFr.trim(),
-          base_price: parseFloat(formPrice),
-          discount_price: formDiscount ? parseFloat(formDiscount) : null,
-          category_id: parseInt(formCategoryId),
-          universe: formUniverse,
-          is_new: formIsNew,
-          is_featured: formIsFeatured,
-        });
-      } else {
-        await onCreateProduct({
-          name_fr: formNameFr.trim(),
-          name_ar: formNameAr.trim() || formNameFr.trim(),
-          sku: formSku.trim().toUpperCase(),
-          slug: formSlug.trim().toLowerCase(),
-          base_price: parseFloat(formPrice),
-          discount_price: formDiscount ? parseFloat(formDiscount) : undefined,
-          universe: formUniverse,
-          category_id: parseInt(formCategoryId) || categories[0]?.id || 1,
-          is_active: true,
-          is_featured: formIsFeatured,
-          is_new: formIsNew,
-          variants: [
-            {
-              sku: `${formSku.trim().toUpperCase()}-${formSize}`,
-              size: formSize,
-              color_name_fr: formColor,
-              color_name_ar: formColor,
-              color_code: formColorCode,
-              stock: parseInt(formStock) || 0,
-              is_active: true,
-            },
-          ],
-          images: formImageUrl
-            ? [{ url: formImageUrl.trim(), is_cover: true, sort_order: 0 }]
-            : [],
-        });
-      }
-      onCloseModal();
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   const productList: Product[] = useMemo(() => {
@@ -400,271 +304,87 @@ export function ProductsManager({
         </div>
       </div>
 
-      {/* ── Modal de Création / Modification de Produit ───────────── */}
-      {showModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
-          <div
-            onClick={onCloseModal}
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
-            aria-hidden="true"
-          />
-
-          <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white border border-neutral-200 shadow-2xl p-6 sm:p-8">
-            <div className="flex items-center justify-between border-b border-neutral-200 pb-4 mb-6">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9c8053]">
-                  {editingProduct ? "Fiche Atelier" : "Nouvelle Création"}
-                </span>
-                <h2 className="font-serif text-lg font-bold uppercase tracking-wider text-black">
-                  {editingProduct ? `Modifier : ${editingProduct.name_fr}` : "Publier une Pièce Couture"}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={onCloseModal}
-                className="p-1 text-neutral-400 hover:text-black"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-5 text-xs">
-              {/* Noms */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                    Nom du Produit (Français) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formNameFr}
-                    onChange={(e) => setFormNameFr(e.target.value)}
-                    placeholder="Ex: Costume Croisé en Laine 130s"
-                    className="w-full border border-neutral-300 p-2 text-xs focus:border-black outline-none bg-neutral-50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                    Nom du Produit (Arabe)
-                  </label>
-                  <input
-                    type="text"
-                    dir="rtl"
-                    value={formNameAr}
-                    onChange={(e) => setFormNameAr(e.target.value)}
-                    placeholder="بدلة رسمية من الصوف الملكي"
-                    className="w-full border border-neutral-300 p-2 text-xs focus:border-black outline-none bg-neutral-50"
-                  />
-                </div>
-              </div>
-
-              {/* SKU & Slug (uniquement création) */}
-              {!editingProduct && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                      SKU Modèle (Unique) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formSku}
-                      onChange={(e) => setFormSku(e.target.value.toUpperCase())}
-                      placeholder="Ex: AVL-CST-01"
-                      className="w-full border border-neutral-300 p-2 text-xs focus:border-black outline-none bg-neutral-50 font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                      Slug URL *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formSlug}
-                      onChange={(e) => setFormSlug(e.target.value.toLowerCase())}
-                      placeholder="Ex: costume-croise-laine-130s"
-                      className="w-full border border-neutral-300 p-2 text-xs focus:border-black outline-none bg-neutral-50 font-mono"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Prix & Remise */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                    Prix de Base (MAD) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    step="0.01"
-                    value={formPrice}
-                    onChange={(e) => setFormPrice(e.target.value)}
-                    placeholder="4200.00"
-                    className="w-full border border-neutral-300 p-2 text-xs focus:border-black outline-none bg-neutral-50 font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                    Prix Promotionnel (Optionnel, MAD)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={formDiscount}
-                    onChange={(e) => setFormDiscount(e.target.value)}
-                    placeholder="Laisser vide si pas de promo"
-                    className="w-full border border-neutral-300 p-2 text-xs focus:border-black outline-none bg-neutral-50 font-mono"
-                  />
-                </div>
-              </div>
-
-              {/* Univers & Catégorie */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                    Univers de Shopping *
-                  </label>
-                  <select
-                    value={formUniverse}
-                    onChange={(e) => setFormUniverse(e.target.value as any)}
-                    className="w-full border border-neutral-300 p-2 text-xs focus:border-black outline-none bg-neutral-50 font-semibold"
-                  >
-                    <option value="MEN">AVELOR HOMME</option>
-                    <option value="WOMEN">AVELOR FEMME</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                    Catégorie de Vestiaire *
-                  </label>
-                  <select
-                    value={formCategoryId}
-                    onChange={(e) => setFormCategoryId(e.target.value)}
-                    className="w-full border border-neutral-300 p-2 text-xs focus:border-black outline-none bg-neutral-50 font-semibold"
-                  >
-                    {categories.map((c) => (
-                      <option key={c.id} value={String(c.id)}>
-                        {c.name_fr} ({c.universe === "MEN" ? "Homme" : "Femme"})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Première variante (en création) */}
-              {!editingProduct && (
-                <div className="border border-neutral-200 bg-neutral-50 p-4 space-y-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-800">
-                    Variante Initiale & Stock
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div>
-                      <label className="block text-[9px] uppercase tracking-wider text-neutral-500 mb-1">Taille</label>
-                      <input
-                        type="text"
-                        value={formSize}
-                        onChange={(e) => setFormSize(e.target.value)}
-                        className="w-full border border-neutral-300 p-1.5 text-xs bg-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase tracking-wider text-neutral-500 mb-1">Couleur (Nom)</label>
-                      <input
-                        type="text"
-                        value={formColor}
-                        onChange={(e) => setFormColor(e.target.value)}
-                        className="w-full border border-neutral-300 p-1.5 text-xs bg-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase tracking-wider text-neutral-500 mb-1">Code Hex</label>
-                      <input
-                        type="text"
-                        value={formColorCode}
-                        onChange={(e) => setFormColorCode(e.target.value)}
-                        className="w-full border border-neutral-300 p-1.5 text-xs bg-white font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase tracking-wider text-neutral-500 mb-1">Stock Initial</label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={formStock}
-                        onChange={(e) => setFormStock(e.target.value)}
-                        className="w-full border border-neutral-300 p-1.5 text-xs bg-white font-mono"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Image URL */}
-              {!editingProduct && (
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">
-                    URL Visuel Principal (Cover)
-                  </label>
-                  <input
-                    type="url"
-                    value={formImageUrl}
-                    onChange={(e) => setFormImageUrl(e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
-                    className="w-full border border-neutral-300 p-2 text-xs focus:border-black outline-none bg-neutral-50"
-                  />
-                </div>
-              )}
-
-              {/* Options */}
-              <div className="flex items-center gap-6 pt-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formIsNew}
-                    onChange={(e) => setFormIsNew(e.target.checked)}
-                    className="h-4 w-4 accent-black"
-                  />
-                  <span className="text-xs font-semibold">Marquer "Nouveauté"</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formIsFeatured}
-                    onChange={(e) => setFormIsFeatured(e.target.checked)}
-                    className="h-4 w-4 accent-black"
-                  />
-                  <span className="text-xs font-semibold">Mettre en Vedette (Home)</span>
-                </label>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-200">
-                <button
-                  type="button"
-                  onClick={onCloseModal}
-                  className="px-4 py-2 border border-neutral-300 text-neutral-700 font-semibold uppercase tracking-wider text-xs hover:bg-neutral-100"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex items-center gap-2 bg-black px-6 py-2 text-xs font-semibold uppercase tracking-wider text-white hover:bg-neutral-800 disabled:opacity-50"
-                >
-                  {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{editingProduct ? "Enregistrer les modifications" : "Publier le Produit"}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* ── Modal Haute Couture de Création / Modification de Produit ───────────── */}
+      <ProductModal
+        isOpen={showModal}
+        onClose={onCloseModal}
+        onSubmit={async (data, isEdit) => {
+          if (isEdit && editingProduct) {
+            await onUpdateProduct(editingProduct.id, {
+              name_fr: data.name_fr.trim(),
+              name_ar: data.name_ar.trim() || data.name_fr.trim(),
+              short_desc_fr: data.short_desc_fr?.trim() || null,
+              short_desc_ar: data.short_desc_ar?.trim() || null,
+              description_fr: data.description_fr?.trim() || null,
+              description_ar: data.description_ar?.trim() || null,
+              material_fr: data.material_fr?.trim() || null,
+              material_ar: data.material_ar?.trim() || null,
+              base_price: parseFloat(data.base_price),
+              discount_price: data.discount_price ? parseFloat(data.discount_price) : null,
+              category_id: parseInt(data.category_id),
+              universe: data.universe,
+              is_new: data.is_new,
+              is_featured: data.is_featured,
+              is_active: data.is_active,
+              variants: data.variants.map((v) => ({
+                sku: v.sku.trim() || `${editingProduct.sku}-${v.size}`,
+                size: v.size.trim(),
+                color_name_fr: v.color_name_fr.trim(),
+                color_name_ar: v.color_name_ar.trim() || v.color_name_fr.trim(),
+                color_code: v.color_code.trim(),
+                stock: v.stock || 0,
+                is_active: v.is_active,
+              })),
+              images: data.images.map((img, idx) => ({
+                url: img.url.trim(),
+                alt_text_fr: img.alt_text_fr || data.name_fr,
+                alt_text_ar: img.alt_text_ar || data.name_ar,
+                is_cover: img.is_cover || (idx === 0),
+                sort_order: img.sort_order || idx,
+              })),
+            });
+          } else {
+            await onCreateProduct({
+              name_fr: data.name_fr.trim(),
+              name_ar: data.name_ar.trim() || data.name_fr.trim(),
+              sku: data.sku.trim().toUpperCase(),
+              slug: data.slug.trim().toLowerCase(),
+              short_desc_fr: data.short_desc_fr?.trim() || undefined,
+              short_desc_ar: data.short_desc_ar?.trim() || undefined,
+              description_fr: data.description_fr?.trim() || undefined,
+              description_ar: data.description_ar?.trim() || undefined,
+              material_fr: data.material_fr?.trim() || undefined,
+              material_ar: data.material_ar?.trim() || undefined,
+              base_price: parseFloat(data.base_price),
+              discount_price: data.discount_price ? parseFloat(data.discount_price) : undefined,
+              universe: data.universe,
+              category_id: parseInt(data.category_id) || categories[0]?.id || 1,
+              is_active: data.is_active,
+              is_featured: data.is_featured,
+              is_new: data.is_new,
+              variants: data.variants.map((v) => ({
+                sku: v.sku.trim() || `${data.sku.trim().toUpperCase()}-${v.size}`,
+                size: v.size.trim(),
+                color_name_fr: v.color_name_fr.trim(),
+                color_name_ar: v.color_name_ar.trim() || v.color_name_fr.trim(),
+                color_code: v.color_code.trim(),
+                stock: v.stock || 0,
+                is_active: v.is_active,
+              })),
+              images: data.images.map((img, idx) => ({
+                url: img.url.trim(),
+                alt_text_fr: img.alt_text_fr || data.name_fr,
+                alt_text_ar: img.alt_text_ar || data.name_ar,
+                is_cover: img.is_cover || (idx === 0),
+                sort_order: img.sort_order || idx,
+              })),
+            });
+          }
+        }}
+        editingProduct={editingProduct}
+        categories={categories}
+        existingProducts={productList}
+      />
     </div>
   );
 }

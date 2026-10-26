@@ -102,6 +102,14 @@ export const translations = {
       status_update: "Mettre à jour le statut",
       tracking: "Numéro de suivi",
     },
+    search: {
+      title: "Résultats de recherche",
+      results_for: "Résultats pour",
+      search_piece: "Rechercher une pièce d'exception",
+      no_results: "Aucun résultat trouvé pour",
+      suggestions: "Essayez avec des termes comme : costume, robe, sac, chemise, cuir...",
+      loading: "Recherche en cours dans nos collections...",
+    },
     footer: {
       about_title: "La Maison AVELOR",
       about_text: "Maison de mode contemporaine incarnant l'élégance marocaine et le raffinement sartorial international.",
@@ -213,6 +221,14 @@ export const translations = {
       actions: "الإجراءات",
       status_update: "تحديث حالة الطلب",
       tracking: "رقم التتبع",
+    },
+    search: {
+      title: "نتائج البحث",
+      results_for: "نتائج البحث عن",
+      search_piece: "ابحث عن قطعة أزياء استثنائية",
+      no_results: "لم يتم العثور على نتائج تطابق",
+      suggestions: "جرب كلمات بحث مثل : بدلة، فستان، حقيبة، قميص، جلد...",
+      loading: "جاري البحث في تشكيلاتنا الراقية...",
     },
     footer: {
       about_title: "دار أفيولور AVELOR",

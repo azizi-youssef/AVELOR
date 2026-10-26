@@ -4,19 +4,27 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useLanguage } from "@/context/LanguageContext";
+import { useToast } from "@/context/ToastContext";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Product, Campaign } from "@/types";
 import { api } from "@/lib/api";
-import { ArrowRight, Sparkles, ArrowLeft, ArrowUpRight, Truck, ShieldCheck, Gem } from "lucide-react";
+import { ArrowRight, Sparkles, ArrowLeft, ArrowUpRight, Truck, ShieldCheck, Gem, Check } from "lucide-react";
 import { LuxuryFadeIn, LuxuryStagger, LuxuryStaggerItem, LuxuryScaleHover, motion } from "@/components/ui/motion";
-import { initialProducts, initialCampaigns } from "@/lib/mock-data";
+import { BrandStory } from "@/components/home/BrandStory";
+import { LookbookSection } from "@/components/home/LookbookSection";
+import { TestimonialsSection } from "@/components/home/TestimonialsSection";
+import { NewsletterSection } from "@/components/home/NewsletterSection";
+import { CountdownTimer } from "@/components/ui/CountdownTimer";
+import { RecentlyViewed } from "@/components/product/RecentlyViewed";
 
 export default function HomePage() {
   const { language, direction, t } = useLanguage();
+  const { toast } = useToast();
   const isArabic = language === "ar";
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>(initialProducts);
-  const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   const ArrowIcon = direction === "rtl" ? ArrowLeft : ArrowRight;
 
@@ -31,11 +39,16 @@ export default function HomePage() {
         ]);
 
         if (!active) return;
-        if (prodRes?.items) setFeaturedProducts(prodRes.items);
+        if (prodRes?.items && prodRes.items.length > 0) {
+          setFeaturedProducts(prodRes.items);
+        } else {
+          // Si aucun produit n'est explicitement marqué is_featured, charger les derniers produits actifs
+          const allRes = await api.getProducts({ page_size: 8 });
+          if (active && allRes?.items) setFeaturedProducts(allRes.items);
+        }
         if (campRes) setCampaigns(campRes);
       } catch (error) {
-        // Keep the currently available content if the API is temporarily unavailable.
-        console.error("Unable to load homepage content:", error);
+        console.error("Unable to load homepage content from database:", error);
       } finally {
         if (active) setLoading(false);
       }
@@ -294,42 +307,74 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Promotion */}
-      <section className="relative overflow-hidden bg-[#22221e] px-5 py-20 text-center text-white sm:px-8 sm:py-28">
-        <div className="pointer-events-none absolute -left-20 -top-24 h-72 w-72 rounded-full border border-white/10" />
-        <div className="pointer-events-none absolute -bottom-40 -right-16 h-96 w-96 rounded-full border border-white/10" />
-        <LuxuryFadeIn className="relative mx-auto max-w-3xl">
-          <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#d8c5a0]">
+      {/* Brand Story — L'âme de marque AVELOR */}
+      <BrandStory />
+
+      {/* Lookbook / Éditorial Lifestyle */}
+      <LookbookSection />
+
+      {/* Promotion avec Countdown Timer */}
+      <section className="relative overflow-hidden bg-[#1E1D19] px-5 py-24 text-center text-white sm:px-8 sm:py-32">
+        <div className="pointer-events-none absolute -left-20 -top-24 h-72 w-72 rounded-full border border-[#C5A059]/10" />
+        <div className="pointer-events-none absolute -bottom-40 -right-16 h-96 w-96 rounded-full border border-[#C5A059]/10" />
+
+        <LuxuryFadeIn className="relative mx-auto max-w-3xl space-y-6">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#d8c5a0]">
             {isArabic ? "امتياز خاص بكم" : "Une attention pour votre première commande"}
           </p>
+
           <h2 className="font-serif text-3xl font-light uppercase leading-tight tracking-wider sm:text-5xl">
             {isArabic ? "خصم حصري 10٪" : "Votre première commande, à -10 %"}
           </h2>
-          <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-white/70">
+
+          <p className="mx-auto max-w-xl text-sm leading-7 text-white/70 font-light">
             {isArabic
               ? "استخدموا الرمز أدناه عند الطلب واستفيدوا من التوصيل المجاني في جميع أنحاء المغرب."
               : "Utilisez ce code lors de votre commande et profitez de la livraison offerte partout au Maroc."}
           </p>
 
-          <div className="mx-auto mt-8 inline-flex items-center gap-4 border border-[#d8c5a0]/60 bg-white/4 px-5 py-4">
+          {/* Countdown timer */}
+          <div className="pt-2">
+            <CountdownTimer
+              title={isArabic ? "ينتهي العرض الترحيبي خلال" : "Offre de bienvenue à durée limitée"}
+            />
+          </div>
+
+          <div className="mx-auto inline-flex items-center gap-4 border border-[#d8c5a0]/60 bg-white/5 backdrop-blur-md px-5 py-4 shadow-sm">
             <span className="font-mono text-sm tracking-[0.24em] text-[#e5d6ba] sm:text-base">BIENVENUE10</span>
             <button
               type="button"
               onClick={() => {
                 if (typeof navigator !== "undefined" && navigator.clipboard) {
                   void navigator.clipboard.writeText("BIENVENUE10");
+                  setCopiedCode(true);
+                  toast(
+                    isArabic ? "تم نسخ الرمز بنجاح !" : "Code promo copié !",
+                    {
+                      type: "success",
+                      subMessage: isArabic ? "BIENVENUE10 (-10%) جاهز للاستخدام" : "BIENVENUE10 (-10%) est dans votre presse-papiers",
+                    }
+                  );
+                  setTimeout(() => setCopiedCode(false), 2500);
                 }
               }}
-              className="border-l border-white/20 pl-4 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/75 transition-colors hover:text-white"
+              className="border-l border-white/20 pl-4 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/90 hover:text-[#d8c5a0] transition-colors flex items-center gap-1.5"
             >
-              {isArabic ? "نسخ الرمز" : "Copier"}
+              {copiedCode ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{isArabic ? "تم النسخ" : "Copié !"}</span>
+                </>
+              ) : (
+                <span>{isArabic ? "نسخ الرمز" : "Copier"}</span>
+              )}
             </button>
           </div>
 
-          <div className="mt-8">
+          <div className="pt-4">
             <Link
               href="/homme"
-              className="inline-flex min-h-12 items-center justify-center gap-3 bg-[#f7f4ed] px-8 py-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#171714] transition-colors hover:bg-[#d8c5a0]"
+              className="inline-flex min-h-12 items-center justify-center gap-3 bg-[#f7f4ed] px-8 py-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#171714] transition-colors hover:bg-[#d8c5a0] shadow-md"
             >
               {isArabic ? "اكتشفوا المجموعة" : "Découvrir la collection"}
               <ArrowIcon className="h-4 w-4" />
@@ -337,6 +382,15 @@ export default function HomePage() {
           </div>
         </LuxuryFadeIn>
       </section>
+
+      {/* Témoignages & Presse */}
+      <TestimonialsSection />
+
+      {/* Recently Viewed */}
+      <RecentlyViewed />
+
+      {/* Newsletter / Le Cercle Privé */}
+      <NewsletterSection />
     </main>
   );
 }

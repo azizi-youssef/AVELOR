@@ -59,17 +59,18 @@ def get_products(
 
     # Filtres par taille ou couleur au niveau des variantes
     if size or color:
-        query = query.join(Product.variants).filter(ProductVariant.is_active == True)
+        variant_subquery = db.query(ProductVariant.product_id).filter(ProductVariant.is_active == True)
         if size:
-            query = query.filter(ProductVariant.size == size)
+            variant_subquery = variant_subquery.filter(ProductVariant.size == size)
         if color:
-            query = query.filter(
+            variant_subquery = variant_subquery.filter(
                 or_(
                     ProductVariant.color_name_fr.ilike(f"%{color}%"),
                     ProductVariant.color_name_ar.ilike(f"%{color}%"),
                     ProductVariant.color_code.ilike(f"%{color}%")
                 )
             )
+        query = query.filter(Product.id.in_(variant_subquery))
 
     # Filtre nouveautés / vedettes
     if is_new is not None:
@@ -99,10 +100,10 @@ def get_products(
     else:  # newest par défaut
         query = query.order_by(desc(Product.created_at))
 
-    total = query.distinct().count()
+    total = query.count()
     total_pages = (total + page_size - 1) // page_size
 
-    items = query.distinct().options(
+    items = query.options(
         joinedload(Product.category),
         selectinload(Product.images),
         selectinload(Product.variants)

@@ -8,7 +8,10 @@ import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { ToastProvider } from "@/context/ToastContext";
+import { ToastContainer } from "@/components/ui/ToastContainer";
 import { DocumentLanguage } from "@/components/layout/DocumentLanguage";
+import { LuxuryCursor } from "@/components/ui/LuxuryCursor";
 
 
 const cinzel = Cinzel({
@@ -110,19 +113,23 @@ export default function RootLayout({
 
         <LanguageProvider>
           <DocumentLanguage />
-          <AuthProvider>
-            <CartProvider>
-              <WishlistProvider>
-                <div className="flex min-h-screen flex-col">
-                  <Header />
-                  <main id="main-content" className="flex-1 outline-none">
-                    {children}
-                  </main>
-                  <Footer />
-                </div>
-              </WishlistProvider>
-            </CartProvider>
-          </AuthProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <CartProvider>
+                <WishlistProvider>
+                  <div className="flex min-h-screen flex-col">
+                    <Header />
+                    <main id="main-content" className="flex-1 outline-none">
+                      {children}
+                    </main>
+                    <Footer />
+                  </div>
+                  <ToastContainer />
+                  <LuxuryCursor />
+                </WishlistProvider>
+              </CartProvider>
+            </AuthProvider>
+          </ToastProvider>
         </LanguageProvider>
       </body>
     </html>

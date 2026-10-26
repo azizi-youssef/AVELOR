@@ -57,6 +57,10 @@ class ProductBase(BaseModel):
     is_active: bool = True
     is_featured: bool = False
     is_new: bool = True
+    # Nouveaux champs enrichissement SEO
+    tags: Optional[List[str]] = None
+    material_fr: Optional[str] = None
+    material_ar: Optional[str] = None
 
 class ProductCreate(ProductBase):
     variants: List[ProductVariantCreate] = []
@@ -78,11 +82,18 @@ class ProductUpdate(BaseModel):
     is_active: Optional[bool] = None
     is_featured: Optional[bool] = None
     is_new: Optional[bool] = None
+    # Champs enrichissement SEO
+    tags: Optional[List[str]] = None
+    material_fr: Optional[str] = None
+    material_ar: Optional[str] = None
+    images: Optional[List[ProductImageCreate]] = None
+    variants: Optional[List[ProductVariantCreate]] = None
 
 class ProductResponse(ProductBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    deleted_at: Optional[datetime] = None
     category: Optional[CategoryResponse] = None
     images: List[ProductImageResponse] = []
     variants: List[ProductVariantResponse] = []

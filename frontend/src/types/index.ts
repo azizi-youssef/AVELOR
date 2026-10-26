@@ -68,6 +68,9 @@ export interface Product {
   is_active: boolean;
   is_featured: boolean;
   is_new: boolean;
+  material_fr?: string;
+  material_ar?: string;
+  tags?: string[];
   created_at: string;
   category?: Category;
   images: ProductImage[];

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum as SQLEnum, Numeric
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum as SQLEnum, Numeric, JSON
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from app.models.enums import GenderUniverse, InventoryReason
@@ -20,6 +20,11 @@ class Product(Base):
     description_fr = Column(Text, nullable=True)
     description_ar = Column(Text, nullable=True)
 
+    # Enrichissement SEO & filtrage
+    tags = Column(JSON, nullable=True)          # ex. ["costume", "mariage", "premium"]
+    material_fr = Column(String(200), nullable=True)  # ex. "100% Laine Mérénos"
+    material_ar = Column(String(200), nullable=True)  # ex. "100% صوف مéريناس"
+
     # Prix en MAD (Dirhams marocains) avec Numeric(10, 2)
     base_price = Column(Numeric(10, 2), nullable=False)
     discount_price = Column(Numeric(10, 2), nullable=True)
@@ -30,6 +35,9 @@ class Product(Base):
     is_active = Column(Boolean, default=True, nullable=False, index=True)
     is_featured = Column(Boolean, default=False, nullable=False, index=True)
     is_new = Column(Boolean, default=True, nullable=False, index=True)
+
+    # Soft-delete : deleted_at renseigné = produit supprimé (mais historique préservé)
+    deleted_at = Column(DateTime, nullable=True, index=True)
 
     created_at = Column(DateTime, default=_utcnow, nullable=False)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)

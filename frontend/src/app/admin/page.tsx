@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -46,7 +46,7 @@ import SettingsManager from "@/components/admin/SettingsManager";
 import AuditLogManager from "@/components/admin/AuditLogManager";
 import { AccountSettingsManager } from "@/components/admin/AccountSettingsManager";
 
-export default function AdminPage() {
+function AdminPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading, isAdmin } = useAuth();
@@ -440,5 +440,20 @@ export default function AdminPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#0d0d0b]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-[#d8c5a0]/30 border-t-[#d8c5a0] rounded-full animate-spin" />
+          <p className="text-[#d8c5a0]/60 text-sm font-sans">Chargement de l&apos;espace admin…</p>
+        </div>
+      </div>
+    }>
+      <AdminPageInner />
+    </Suspense>
   );
 }

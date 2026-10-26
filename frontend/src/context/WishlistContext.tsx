@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { Product } from "@/types";
+import { useToast } from "@/context/ToastContext";
 
 interface WishlistContextType {
   items: Product[];
@@ -16,6 +17,7 @@ const WishlistContext = createContext<WishlistContextType | undefined>(undefined
 
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<Product[]>([]);
+  const { toast } = useToast();
 
   useEffect(() => {
     try {
@@ -35,20 +37,36 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
       if (prev.find((p) => p.id === product.id)) return prev;
       return [...prev, product];
     });
-  }, []);
+    toast("Ajouté à la wishlist", { type: "wishlist", subMessage: product.name_fr });
+  }, [toast]);
 
   const removeItem = useCallback((productId: number) => {
-    setItems((prev) => prev.filter((p) => p.id !== productId));
-  }, []);
+    let removedItem: Product | undefined;
+    setItems((prev) => {
+      removedItem = prev.find((p) => p.id === productId);
+      return prev.filter((p) => p.id !== productId);
+    });
+    if (removedItem) {
+      toast("Retiré de la wishlist", { type: "info", subMessage: (removedItem as Product).name_fr });
+    }
+  }, [toast]);
 
   const toggleItem = useCallback((product: Product) => {
+    let wasRemoved = false;
     setItems((prev) => {
       if (prev.find((p) => p.id === product.id)) {
+        wasRemoved = true;
         return prev.filter((p) => p.id !== product.id);
       }
       return [...prev, product];
     });
-  }, []);
+
+    if (wasRemoved) {
+      toast("Retiré de la wishlist", { type: "info", subMessage: product.name_fr });
+    } else {
+      toast("Ajouté à la wishlist", { type: "wishlist", subMessage: product.name_fr });
+    }
+  }, [toast]);
 
   const isWishlisted = useCallback(
     (productId: number) => items.some((p) => p.id === productId),

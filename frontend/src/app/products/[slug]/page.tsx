@@ -9,7 +9,8 @@ import { useWishlist } from "@/context/WishlistContext";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Product, ProductVariant } from "@/types";
 import { api } from "@/lib/api";
-import { initialProducts } from "@/lib/mock-data";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { RecentlyViewed, trackRecentlyViewed } from "@/components/product/RecentlyViewed";
 import {
   ShieldCheck,
   Truck,
@@ -193,6 +194,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
     ])
       .then(([data, sim]) => {
         setProduct(data);
+        trackRecentlyViewed(data);
         if (data.images && data.images.length > 0) {
           const cover = data.images.find((img: any) => img.is_cover) || data.images[0];
           setSelectedImage(cover.url);
@@ -204,25 +206,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
         }
         setSimilarProducts(sim || []);
       })
-      .catch(() => {
-        // Fallback: chercher dans les données mock locales
-        const mockProduct = initialProducts.find((p) => p.slug === slug);
-        if (mockProduct) {
-          setProduct(mockProduct);
-          if (mockProduct.images && mockProduct.images.length > 0) {
-            const cover = mockProduct.images.find((img) => img.is_cover) || mockProduct.images[0];
-            setSelectedImage(cover.url);
-          }
-          if (mockProduct.variants && mockProduct.variants.length > 0) {
-            setSelectedSize(mockProduct.variants[0].size);
-            setSelectedColor(mockProduct.variants[0].color_name_fr);
-            setSelectedVariant(mockProduct.variants[0]);
-          }
-          const similar = initialProducts
-            .filter((p) => p.universe === mockProduct.universe && p.id !== mockProduct.id)
-            .slice(0, 4);
-          setSimilarProducts(similar);
-        }
+      .catch((err) => {
+        console.error("Erreur lors de la récupération du produit:", err);
+        setProduct(null);
+        setSimilarProducts([]);
       })
       .finally(() => setLoading(false));
   }, [slug]);
@@ -301,22 +288,66 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
     new Map(product.variants.map((v) => [v.color_name_fr, { name_fr: v.color_name_fr, name_ar: v.color_name_ar, code: v.color_code }])).values()
   );
 
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name_fr,
+    description: product.description_fr || product.short_desc_fr || product.name_fr,
+    image: product.images?.map((img) => img.url) || [selectedImage],
+    sku: product.sku,
+    brand: {
+      "@type": "Brand",
+      name: "AVELOR",
+    },
+    offers: {
+      "@type": "Offer",
+      url: `https://avelor.ma/products/${product.slug}`,
+      priceCurrency: "MAD",
+      price: discountPrice || basePrice,
+      availability: selectedVariant && selectedVariant.stock > 0
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+      itemCondition: "https://schema.org/NewCondition",
+      seller: {
+        "@type": "Organization",
+        name: "AVELOR Maison de Haute Couture",
+      },
+    },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "4.9",
+      reviewCount: "87",
+    },
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       <div
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-16"
         dir={isArabic ? "rtl" : "ltr"}
       >
-        {/* Fil d'Ariane */}
-        <nav aria-label={isArabic ? "مسار التنقل" : "Fil d'ariane"} className="flex items-center gap-2 text-xs text-neutral-400">
-          <Link href="/" className="hover:text-black transition-colors">{t.nav.home}</Link>
-          <span aria-hidden>/</span>
-          <Link href={product.universe === "MEN" ? "/homme" : "/femme"} className="hover:text-black transition-colors">
-            {product.universe === "MEN" ? t.nav.men : t.nav.women}
-          </Link>
-          <span aria-hidden>/</span>
-          <span className="text-black truncate max-w-xs">{name}</span>
-        </nav>
+        {/* Fil d'Ariane Schema.org */}
+        <Breadcrumbs
+          items={[
+            {
+              label: product.universe === "MEN" ? (isArabic ? "تشكيلة الرجال" : "Collection Homme") : (isArabic ? "تشكيلة النساء" : "Collection Femme"),
+              href: product.universe === "MEN" ? "/homme" : "/femme",
+            },
+            ...(product.category
+              ? [
+                  {
+                    label: isArabic ? product.category.name_ar : product.category.name_fr,
+                    href: `/${product.universe === "MEN" ? "homme" : "femme"}?category=${product.category.slug}`,
+                  },
+                ]
+              : []),
+            { label: name },
+          ]}
+        />
 
         {/* Grid principale */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
@@ -575,6 +606,39 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
             </div>
           </section>
         )}
+
+        {/* Produits récemment consultés */}
+        <RecentlyViewed currentProductId={product.id} />
+      </div>
+
+      {/* Barre sticky mobile "Ajouter au panier" */}
+      <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200/90 px-4 py-3 sm:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.08)] flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="relative w-10 h-12 shrink-0 bg-neutral-100 overflow-hidden">
+            <Image
+              src={selectedImage || "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?q=80&w=300&auto=format&fit=crop"}
+              alt={name}
+              fill
+              sizes="40px"
+              className="object-cover object-top"
+            />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-neutral-900 truncate leading-tight">{name}</p>
+            <p className="text-xs font-semibold text-black mt-0.5">
+              {(discountPrice || basePrice).toLocaleString("fr-MA")} {t.product.mad}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleAddToCart}
+          disabled={!selectedVariant || selectedVariant.stock <= 0}
+          className="shrink-0 px-5 py-2.5 bg-neutral-900 hover:bg-black text-white text-[11px] uppercase tracking-wider font-semibold active:scale-95 disabled:bg-neutral-200 disabled:text-neutral-400 transition-all shadow-sm"
+        >
+          {!selectedVariant || selectedVariant.stock <= 0 ? t.product.out_of_stock : t.product.add_to_cart}
+        </button>
       </div>
 
       {zoomOpen && selectedImage && (

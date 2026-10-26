@@ -8,7 +8,6 @@ import { useLanguage } from "@/context/LanguageContext";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Product, Category } from "@/types";
 import { api } from "@/lib/api";
-import { initialProducts, mockCategoriesMen, mockCategoriesWomen } from "@/lib/mock-data";
 import {
   SlidersHorizontal,
   X,
@@ -183,13 +182,19 @@ export default function CategoryDetailPage({ params }: { params: Promise<{ slug:
       .then((cat) => {
         if (active && cat) setCategory(cat);
       })
-      .catch(() => {
+      .catch(async () => {
         if (!active) return;
-        // Recherche dans le mock
-        const allMocks = [...mockCategoriesMen, ...mockCategoriesWomen];
-        const found = allMocks.find((c) => c.slug === canonicalSlug);
-        if (found) setCategory(found);
-        else {
+        try {
+          const allCategories = await api.getCategories();
+          const found = allCategories.find((c) => c.slug === canonicalSlug);
+          if (active && found) {
+            setCategory(found);
+            return;
+          }
+        } catch {
+          // Ignore
+        }
+        if (active) {
           setCategory({
             id: 0,
             slug: canonicalSlug,
@@ -227,19 +232,9 @@ export default function CategoryDetailPage({ params }: { params: Promise<{ slug:
         }
         setProducts(items);
       })
-      .catch(() => {
-        // Fallback local
-        let items = initialProducts.filter((p) => {
-          const matchCat = category ? p.category_id === category.id : true;
-          return matchCat && (p.universe === editorial.universe || p.universe === "UNISEX");
-        });
-        if (onlyPromos) {
-          items = items.filter((p) => p.discount_price !== null && p.discount_price !== undefined);
-        }
-        if (selectedSize) {
-          items = items.filter((p) => p.variants?.some((v) => v.size === selectedSize));
-        }
-        setProducts(items);
+      .catch((err) => {
+        console.error("Erreur chargement produits catégorie:", err);
+        setProducts([]);
       })
       .finally(() => setLoading(false));
   }, [canonicalSlug, category, selectedSort, selectedSize, minPrice, maxPrice, onlyPromos, editorial.universe]);
@@ -265,7 +260,7 @@ export default function CategoryDetailPage({ params }: { params: Promise<{ slug:
   ].filter(Boolean).length;
 
   return (
-    <div dir={direction} className="min-h-screen bg-[#faf9f6] text-[#171714]">
+    <div dir={direction} className="min-h-screen bg-ivory text-[#171714]">
       {/* ─────────────────────────────────────────────────────────────
           1. BREADCRUMB ÉLÉGANT
       ───────────────────────────────────────────────────────────── */}

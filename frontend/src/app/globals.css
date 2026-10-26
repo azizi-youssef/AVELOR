@@ -1,119 +1,376 @@
 @import "tailwindcss";
 
-/* -------------------------------------------------------------------------- */
-/*  Design tokens (Tailwind v4) — génère font-serif / font-sans / couleurs    */
-/* -------------------------------------------------------------------------- */
+/* ==========================================================================
+   1. DESIGN TOKENS — TAILWIND CSS V4
+   Identité visuelle : Haute couture / Luxe contemporain
+   ========================================================================== */
+
 @theme {
+  /* Typography */
   --font-serif: "Cinzel", Georgia, "Times New Roman", serif;
-  --font-sans: "Plus Jakarta Sans", "Tajawal", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Tajawal", system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-arabic: "Tajawal", "Plus Jakarta Sans", system-ui, sans-serif;
 
+  /* Core palette */
   --color-ink: #171717;
   --color-paper: #ffffff;
+  --color-ivory: #faf9f6;
+  --color-luxe-gold: #b69b65;
 
+  /* Supporting palette */
+  --color-muted: #737373;
+  --color-subtle: #a3a3a3;
+  --color-border: #e8e5df;
+  --color-surface: #f7f6f3;
+  --color-surface-dark: #222222;
+
+  /* Semantic colors */
+  --color-success: #287a55;
+  --color-error: #b42318;
+  --color-warning: #9a6700;
+  --color-info: #2457a7;
+
+  /* Motion */
   --ease-luxe: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Shadows */
+  --shadow-soft: 0 4px 20px rgb(23 23 23 / 4%);
+  --shadow-card: 0 8px 30px rgb(23 23 23 / 6%);
+  --shadow-luxe: 0 16px 48px rgb(23 23 23 / 10%);
+
+  /* Rounded corners */
+  --radius-luxe: 2px;
+  --radius-card: 4px;
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Base                                                                      */
-/* -------------------------------------------------------------------------- */
+/* ==========================================================================
+   2. GLOBAL RESET & DOCUMENT
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  --header-offset: 6.5rem;
+  --page-gutter: clamp(1rem, 4vw, 4rem);
+
+  --transition-fast: 180ms var(--ease-smooth);
+  --transition-normal: 300ms var(--ease-luxe);
+  --transition-slow: 600ms var(--ease-luxe);
+}
+
 html {
   scroll-behavior: smooth;
-  /* Évite le saut de mise en page quand le scroll est bloqué (menu mobile) */
+  scroll-padding-top: var(--header-offset);
   scrollbar-gutter: stable;
-  /* Les ancres (#main-content, etc.) ne passent pas sous le header sticky */
-  scroll-padding-top: 6.5rem;
+
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+
+  -webkit-tap-highlight-color: transparent;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
-  font-family: var(--font-sans);
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+
+  overflow-x: clip;
+
   background-color: var(--color-paper);
   color: var(--color-ink);
-  /* clip (et non hidden) : ne casse pas position: sticky du header */
-  overflow-x: clip;
-  min-height: 100dvh;
+
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
   text-rendering: optimizeLegibility;
 }
+
+/* ==========================================================================
+   3. TYPOGRAPHY
+   ========================================================================== */
 
 h1,
 h2,
 h3,
+h4,
+h5,
+h6,
 .font-serif {
   font-family: var(--font-serif);
+  font-weight: 500;
+  line-height: 1.2;
+  text-wrap: balance;
 }
 
-::selection {
-  background-color: #171717;
-  color: #ffffff;
+h1 {
+  letter-spacing: -0.035em;
 }
 
-img,
-svg,
-video {
-  max-width: 100%;
+h2 {
+  letter-spacing: -0.025em;
 }
 
-/* Focus clavier visible et cohérent partout */
-:focus-visible {
-  outline: 2px solid #171717;
-  outline-offset: 3px;
+h3 {
+  letter-spacing: -0.015em;
 }
 
-footer :focus-visible,
-.on-dark :focus-visible {
-  outline-color: #ffffff;
+p {
+  text-wrap: pretty;
 }
 
-/* Champs de recherche : retire la croix native WebKit */
-input[type="search"]::-webkit-search-decoration,
-input[type="search"]::-webkit-search-cancel-button {
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+button,
+[type="button"],
+[type="reset"],
+[type="submit"] {
   -webkit-appearance: none;
   appearance: none;
 }
 
-/* -------------------------------------------------------------------------- */
-/*  RTL / Arabe                                                               */
-/* -------------------------------------------------------------------------- */
-[dir="rtl"] {
-  font-family: var(--font-arabic);
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
 }
 
-[dir="rtl"] h1,
-[dir="rtl"] h2,
-[dir="rtl"] h3,
-[dir="rtl"] .font-serif {
-  font-family: var(--font-arabic);
-  font-weight: 700;
+img,
+video {
+  height: auto;
 }
 
-/* L'espacement entre lettres casse la liaison des lettres arabes */
-[dir="rtl"] *,
-[lang="ar"] * {
-  letter-spacing: 0 !important;
+img {
+  vertical-align: middle;
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Animations                                                                */
-/* -------------------------------------------------------------------------- */
+svg {
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   4. SELECTION & SCROLLBAR
+   ========================================================================== */
+
+::selection {
+  background-color: var(--color-ink);
+  color: var(--color-paper);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c8c4bb transparent;
+}
+
+/* Chromium / Safari */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-color: #c8c4bb;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #99948a;
+  background-clip: padding-box;
+}
+
+/* ==========================================================================
+   5. ACCESSIBILITY & KEYBOARD NAVIGATION
+   ========================================================================== */
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 4px;
+}
+
+/* Dark surfaces */
+footer :focus-visible,
+.on-dark :focus-visible {
+  outline-color: var(--color-paper);
+}
+
+/* Avoid focus outlines on non-interactive SVG elements */
+svg:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Skip link: accessible keyboard navigation */
+.skip-link {
+  position: fixed;
+  z-index: 9999;
+  top: 1rem;
+  left: 1rem;
+
+  padding: 0.75rem 1rem;
+
+  transform: translateY(-200%);
+  transition: transform var(--transition-fast);
+
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* ==========================================================================
+   6. FORM ELEMENTS
+   ========================================================================== */
+
+input,
+textarea,
+select {
+  max-width: 100%;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-subtle);
+  opacity: 1;
+}
+
+/* Remove native search decorations */
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Prevent iOS from zooming into form fields */
+@media screen and (max-width: 767px) {
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* ==========================================================================
+   7. LUXURY UI UTILITIES
+   ========================================================================== */
+
+/* Subtle gold divider */
+.luxe-divider {
+  width: 3rem;
+  height: 1px;
+  border: 0;
+  background-color: var(--color-luxe-gold);
+}
+
+/* Underline animation for navigation links */
+.luxe-link {
+  position: relative;
+  display: inline-block;
+}
+
+.luxe-link::after {
+  position: absolute;
+  right: 0;
+  bottom: -4px;
+  left: 0;
+
+  height: 1px;
+
+  background-color: currentColor;
+  content: "";
+
+  transform: scaleX(0);
+  transform-origin: right center;
+
+  transition: transform var(--transition-normal);
+}
+
+.luxe-link:hover::after,
+.luxe-link:focus-visible::after {
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+
+/* Editorial image hover effect */
+.luxe-image {
+  overflow: hidden;
+}
+
+.luxe-image img {
+  transition: transform 700ms var(--ease-luxe);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .luxe-image:hover img {
+    transform: scale(1.035);
+  }
+}
+
+/* Thin border for premium cards */
+.luxe-border {
+  border: 1px solid var(--color-border);
+}
+
+/* ==========================================================================
+   8. ANIMATIONS
+   Existing classes preserved for compatibility
+   ========================================================================== */
+
 .fade-in {
   opacity: 0;
-  animation: fadeIn 0.8s var(--ease-luxe) forwards;
+  animation: fadeIn 800ms var(--ease-luxe) forwards;
 }
 
 .fade-in-delay-1 {
-  animation-delay: 0.1s;
+  animation-delay: 100ms;
 }
 
 .fade-in-delay-2 {
-  animation-delay: 0.2s;
+  animation-delay: 200ms;
 }
 
 .fade-in-delay-3 {
-  animation-delay: 0.3s;
+  animation-delay: 300ms;
 }
 
 @keyframes fadeIn {
@@ -128,7 +385,78 @@ input[type="search"]::-webkit-search-cancel-button {
   }
 }
 
-/* Respect des préférences d'accessibilité */
+/* Optional subtle entrance for editorial content */
+.fade-up {
+  animation: fadeUp 700ms var(--ease-luxe) both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   9. RTL / ARABIC SUPPORT
+   ========================================================================== */
+
+[dir="rtl"] {
+  font-family: var(--font-arabic);
+}
+
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3,
+[dir="rtl"] h4,
+[dir="rtl"] h5,
+[dir="rtl"] h6,
+[dir="rtl"] .font-serif {
+  font-family: var(--font-arabic);
+  font-weight: 700;
+}
+
+/* Letter spacing can break Arabic character shaping */
+[dir="rtl"] *,
+[lang="ar"] * {
+  letter-spacing: 0 !important;
+}
+
+/* Keep common text-entry fields readable in RTL layouts */
+[dir="rtl"] input,
+[dir="rtl"] textarea {
+  text-align: start;
+}
+
+/* ==========================================================================
+   10. RESPONSIVE & MOTION PREFERENCES
+   ========================================================================== */
+
+/* Smaller sticky-header offset on mobile */
+@media (max-width: 767px) {
+  :root {
+    --header-offset: 5rem;
+    --page-gutter: 1rem;
+  }
+
+  body {
+    font-size: 0.875rem;
+  }
+}
+
+/* Avoid hover-only effects on touch devices */
+@media (hover: none) {
+  .luxe-link::after {
+    transition: none;
+  }
+}
+
+/* Respect the user's motion preferences */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -137,12 +465,14 @@ input[type="search"]::-webkit-search-cancel-button {
   *,
   *::before,
   *::after {
+    scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 
-  .fade-in {
+  .fade-in,
+  .fade-up {
     opacity: 1;
     transform: none;
   }

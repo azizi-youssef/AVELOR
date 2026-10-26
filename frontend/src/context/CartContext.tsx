@@ -1,8 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { Product, ProductVariant, CartItem } from "@/types";
 import { api } from "@/lib/api";
+import { useToast } from "@/context/ToastContext";
 
 interface CartContextType {
   items: CartItem[];
@@ -19,15 +20,26 @@ interface CartContextType {
   couponError: string | null;
   applyCoupon: (code: string) => Promise<boolean>;
   removeCoupon: () => void;
+  isCartOpen: boolean;
+  setIsCartOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  openCart: () => void;
+  closeCart: () => void;
+  toggleCart: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const { toast } = useToast();
   const [couponCode, setCouponCode] = useState<string>("");
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [couponError, setCouponError] = useState<string | null>(null);
+  const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+
+  const openCart = useCallback(() => setIsCartOpen(true), []);
+  const closeCart = useCallback(() => setIsCartOpen(false), []);
+  const toggleCart = useCallback(() => setIsCartOpen((prev) => !prev), []);
 
   // Charger le panier depuis localStorage
   useEffect(() => {
@@ -47,6 +59,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items]);
 
   const addItem = (product: Product, variant: ProductVariant, quantity: number = 1) => {
+    const isExisting = items.some((i) => i.variant.id === variant.id);
     setItems((prev) => {
       const existingIndex = prev.findIndex((i) => i.variant.id === variant.id);
       if (existingIndex > -1) {
@@ -60,6 +73,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
       return [...prev, { product, variant, quantity: Math.min(quantity, variant.stock) }];
     });
+
+    toast(isExisting ? "Panier mis à jour" : "Ajouté au panier", {
+      type: "success",
+      subMessage: product.name_fr,
+    });
+    setIsCartOpen(true);
   };
 
   const updateQuantity = (variantId: number, quantity: number) => {
@@ -81,6 +100,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeItem = (variantId: number) => {
+    const item = items.find((i) => i.variant.id === variantId);
+    if (item) {
+      toast("Retiré du panier", { type: "info", subMessage: item.product.name_fr });
+    }
     setItems((prev) => prev.filter((item) => item.variant.id !== variantId));
   };
 
@@ -108,13 +131,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (res.is_valid) {
         setCouponCode(res.code);
         setDiscountAmount(Number(res.calculated_discount));
+        toast("Code promo appliqué !", {
+          type: "success",
+          subMessage: `−${res.calculated_discount} MAD`,
+        });
         return true;
       } else {
         setCouponError(res.message);
+        toast(res.message || "Code invalide", { type: "error" });
         return false;
       }
     } catch (err: any) {
       setCouponError(err.message || "Erreur de validation du code");
+      toast("Erreur lors de la validation du code", { type: "error" });
       return false;
     }
   };
@@ -144,6 +173,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         couponError,
         applyCoupon,
         removeCoupon,
+        isCartOpen,
+        setIsCartOpen,
+        openCart,
+        closeCart,
+        toggleCart,
       }}
     >
       {children}

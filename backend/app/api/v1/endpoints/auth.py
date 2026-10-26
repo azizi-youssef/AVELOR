@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -18,9 +18,20 @@ from app.schemas.user import (
 
 router = APIRouter()
 
+def _set_auth_cookie(response: Response, token: str):
+    response.set_cookie(
+        key="avelor_access_token",
+        value=token,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        httponly=True,
+        samesite="lax",
+        secure=False,
+        path="/"
+    )
+
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
-def register(request: Request, user_in: UserCreate, db: Session = Depends(get_db)):
+def register(request: Request, response: Response, user_in: UserCreate, db: Session = Depends(get_db)):
     # Vérifier l'unicité de l'email
     existing_user = db.query(User).filter(User.email == user_in.email.lower()).first()
     if existing_user:
@@ -43,6 +54,7 @@ def register(request: Request, user_in: UserCreate, db: Session = Depends(get_db
     db.refresh(user)
 
     token = create_access_token(subject=user.id)
+    _set_auth_cookie(response, token)
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -51,7 +63,7 @@ def register(request: Request, user_in: UserCreate, db: Session = Depends(get_db
 
 @router.post("/login", response_model=Token)
 @limiter.limit("5/minute")
-def login(request: Request, login_data: LoginRequest, db: Session = Depends(get_db)):
+def login(request: Request, response: Response, login_data: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == login_data.email.lower()).first()
     if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(
@@ -65,6 +77,7 @@ def login(request: Request, login_data: LoginRequest, db: Session = Depends(get_
         )
 
     token = create_access_token(subject=user.id)
+    _set_auth_cookie(response, token)
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -73,7 +86,7 @@ def login(request: Request, login_data: LoginRequest, db: Session = Depends(get_
 
 @router.post("/login-form", response_model=Token)
 @limiter.limit("5/minute")
-def login_form(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login_form(request: Request, response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == form_data.username.lower()).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -81,11 +94,17 @@ def login_form(request: Request, form_data: OAuth2PasswordRequestForm = Depends(
             detail="Identifiants invalides"
         )
     token = create_access_token(subject=user.id)
+    _set_auth_cookie(response, token)
     return {
         "access_token": token,
         "token_type": "bearer",
         "user": user
     }
+
+@router.post("/logout")
+def logout(response: Response):
+    response.delete_cookie(key="avelor_access_token", path="/")
+    return {"message": "Déconnexion réussie"}
 
 @router.get("/me", response_model=UserResponse)
 def read_current_user(current_user: User = Depends(get_current_user)):
@@ -137,6 +156,7 @@ def add_address(
 
 @router.post("/oauth-callback", response_model=Token)
 def oauth_callback(
+    response: Response,
     data: OAuthCallbackRequest,
     db: Session = Depends(get_db)
 ):
@@ -177,6 +197,7 @@ def oauth_callback(
         db.refresh(user)
 
     token = create_access_token(subject=user.id)
+    _set_auth_cookie(response, token)
     return {
         "access_token": token,
         "token_type": "bearer",

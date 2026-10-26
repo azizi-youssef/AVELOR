@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { ShieldCheck, User } from "lucide-react";
 
 export default function LoginPage() {
   const { login, register, loginWithOAuth } = useAuth();
@@ -55,18 +54,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillDemoAdmin = () => {
-    setEmail("admin@avelor.ma");
-    setPassword("AdminAvelor2026!");
-    setIsRegister(false);
-  };
-
-  const fillDemoClient = () => {
-    setEmail("client@avelor.ma");
-    setPassword("ClientAvelor2026!");
-    setIsRegister(false);
   };
 
   return (
@@ -226,28 +213,6 @@ export default function LoginPage() {
         </button>
       </form>
 
-      {/* Raccourcis de démonstration rapide */}
-      <div className="border-t border-neutral-200 pt-6 space-y-3">
-        <span className="text-[11px] text-neutral-400 block text-center uppercase tracking-wider font-semibold">
-          Identifiants de Démonstration AVELOR
-        </span>
-        <div className="flex gap-2 text-[11px]">
-          <button
-            type="button"
-            onClick={fillDemoAdmin}
-            className="flex-1 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-medium border border-neutral-200"
-          >
-            Compte Administrateur
-          </button>
-          <button
-            type="button"
-            onClick={fillDemoClient}
-            className="flex-1 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-medium border border-neutral-200"
-          >
-            Compte Client Test
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

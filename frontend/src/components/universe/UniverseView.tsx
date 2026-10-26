@@ -8,7 +8,6 @@ import { useLanguage } from "@/context/LanguageContext";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Product, Category } from "@/types";
 import { api } from "@/lib/api";
-import { initialProducts } from "@/lib/mock-data";
 import {
   SlidersHorizontal,
   X,
@@ -94,9 +93,7 @@ export function UniverseView({ config }: UniverseViewProps) {
   const urlNew = searchParams.get("is_new") === "true";
   const urlSort = searchParams.get("sort") || "newest";
 
-  const [products, setProducts] = useState<Product[]>(() =>
-    initialProducts.filter((p) => p.universe === config.universe || p.universe === "UNISEX")
-  );
+  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>(urlCategory);
   const [selectedSize, setSelectedSize] = useState<string>(urlSize);
@@ -152,25 +149,9 @@ export function UniverseView({ config }: UniverseViewProps) {
         }
         setProducts(items);
       })
-      .catch(() => {
-        // Fallback local mock data
-        let items = initialProducts.filter(
-          (p) => p.universe === config.universe || p.universe === "UNISEX"
-        );
-        if (selectedCategory) {
-          items = items.filter((p) => {
-            const cat = categories.find((c) => c.slug === selectedCategory);
-            return cat ? p.category_id === cat.id : true;
-          });
-        }
-        if (onlyNew) items = items.filter((p) => p.is_new);
-        if (onlyPromos) {
-          items = items.filter((p) => p.discount_price !== null && p.discount_price !== undefined);
-        }
-        if (selectedSize) {
-          items = items.filter((p) => p.variants?.some((v) => v.size === selectedSize));
-        }
-        setProducts(items);
+      .catch((err) => {
+        console.error("Erreur lors de la récupération des produits de l'univers:", err);
+        setProducts([]);
       })
       .finally(() => setLoading(false));
   }, [

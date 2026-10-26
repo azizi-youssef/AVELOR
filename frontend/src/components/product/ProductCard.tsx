@@ -3,11 +3,12 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart } from "lucide-react";
+import { Heart, Eye } from "lucide-react";
 import { motion } from "framer-motion";
 import { Product } from "@/types";
 import { useLanguage } from "@/context/LanguageContext";
 import { useWishlist } from "@/context/WishlistContext";
+import { QuickViewModal } from "@/components/product/QuickViewModal";
 
 interface ProductCardProps {
   product: Product;
@@ -18,6 +19,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   const { language, t } = useLanguage();
   const { toggleItem, isWishlisted } = useWishlist();
   const [hovered, setHovered] = useState(false);
+  const [quickViewOpen, setQuickViewOpen] = useState(false);
 
   const coverImage =
     product.images && product.images.length > 0
@@ -61,9 +63,8 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             fill
             priority={priority}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className={`object-cover object-top transition-all duration-700 ease-out group-hover:scale-105 ${
-              hoverImage && hovered ? "opacity-0" : "opacity-100"
-            }`}
+            className={`object-cover object-top transition-all duration-700 ease-out group-hover:scale-105 ${hoverImage && hovered ? "opacity-0" : "opacity-100"
+              }`}
           />
 
           {/* Image hover (second angle) */}
@@ -73,9 +74,8 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               alt=""
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className={`object-cover object-top transition-all duration-700 ease-out group-hover:scale-105 absolute inset-0 ${
-                hovered ? "opacity-100" : "opacity-0"
-              }`}
+              className={`object-cover object-top transition-all duration-700 ease-out group-hover:scale-105 absolute inset-0 ${hovered ? "opacity-100" : "opacity-0"
+                }`}
             />
           )}
         </Link>
@@ -115,15 +115,14 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
                 ? "Retirer des favoris"
                 : "إزالة من المفضلة"
               : language === "fr"
-              ? "Ajouter aux favoris"
-              : "أضف إلى المفضلة"
+                ? "Ajouter aux favoris"
+                : "أضف إلى المفضلة"
           }
           aria-pressed={wishlisted}
-          className={`absolute top-2.5 inset-e-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 shadow-sm ${
-            wishlisted
+          className={`absolute top-2.5 inset-e-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 shadow-sm ${wishlisted
               ? "bg-black text-white opacity-100 scale-100"
               : "bg-white/90 backdrop-blur-md text-neutral-600 opacity-0 group-hover:opacity-100"
-          }`}
+            }`}
         >
           <motion.div
             key={wishlisted ? "active" : "inactive"}
@@ -138,6 +137,22 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             />
           </motion.div>
         </motion.button>
+
+        {/* Bouton Aperçu Rapide au survol */}
+        <div className="absolute bottom-2.5 inset-x-2.5 z-10 hidden sm:block opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setQuickViewOpen(true);
+            }}
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-white/95 hover:bg-white text-neutral-900 text-[10px] uppercase tracking-widest font-semibold backdrop-blur-md shadow-md transition-colors"
+          >
+            <Eye className="w-3.5 h-3.5 stroke-[1.5]" />
+            <span>{language === "ar" ? "نظرة سريعة" : "Aperçu rapide"}</span>
+          </button>
+        </div>
       </div>
 
       {/* Infos produit */}
@@ -184,6 +199,14 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           )}
         </div>
       </div>
+
+      {/* Quick View Modal */}
+      {quickViewOpen && (
+        <QuickViewModal
+          product={product}
+          onClose={() => setQuickViewOpen(false)}
+        />
+      )}
     </motion.article>
   );
 }

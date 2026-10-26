@@ -357,7 +357,7 @@ function MobileAccordion({ data, label, isArabic, expanded, onToggle, onNavigate
 
 export function Header() {
   const { language, setLanguage, t } = useLanguage();
-  const { itemCount } = useCart();
+  const { itemCount, isCartOpen, openCart, closeCart, toggleCart } = useCart();
   const { count: wishlistCount } = useWishlist();
   const { user, isAdmin, logout } = useAuth();
   const router = useRouter();
@@ -369,7 +369,6 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const [miniCartOpen, setMiniCartOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -383,7 +382,6 @@ export function Header() {
     setMobileMenuOpen(false);
     setUserDropdownOpen(false);
     setActiveCatalogue(null);
-    setMiniCartOpen(false);
     setSearchOpen(false);
   }, []);
 
@@ -410,10 +408,11 @@ export function Header() {
 
   const toggleLanguage = () => setLanguage(isArabic ? "fr" : "ar");
 
-  // Fermer tous les menus à chaque changement de page
+  // Fermer tous les menus et le panier à chaque changement de page
   useEffect(() => {
     closeMenus();
-  }, [pathname, closeMenus]);
+    closeCart();
+  }, [pathname, closeMenus, closeCart]);
 
   // Échap pour fermer
   useEffect(() => {
@@ -783,7 +782,7 @@ export function Header() {
                   type="button"
                   onClick={() => {
                     closeMenus();
-                    setMiniCartOpen(true);
+                    toggleCart();
                   }}
                   title={t.nav.cart}
                   aria-label={`${t.nav.cart}${itemCount > 0 ? ` (${itemCount})` : ""}`}
@@ -1141,6 +1140,22 @@ export function Header() {
                 )}
               </Link>
 
+              <button
+                type="button"
+                onClick={() => {
+                  closeMenus();
+                  openCart();
+                }}
+                className="flex w-full items-center justify-between py-4 text-xs font-medium uppercase tracking-[0.18em] text-neutral-700 text-start"
+              >
+                <span>{t.nav.cart}</span>
+                {itemCount > 0 && (
+                  <span className="rounded-full bg-black px-2 py-0.5 text-[10px] font-semibold text-white">
+                    {itemCount}
+                  </span>
+                )}
+              </button>
+
               <Link
                 href={user ? "/account" : "/login"}
                 onClick={closeMenus}
@@ -1181,7 +1196,7 @@ export function Header() {
       </header>
 
       {/* Mini-panier */}
-      <MiniCart open={miniCartOpen} onClose={() => setMiniCartOpen(false)} />
+      <MiniCart open={isCartOpen} onClose={closeCart} />
     </>
   );
 }

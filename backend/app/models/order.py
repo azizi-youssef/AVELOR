@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum as SQLEnum, Numeric
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum as SQLEnum, Numeric, JSON
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from app.models.enums import OrderStatus, PaymentStatus, PaymentMethod
@@ -12,9 +12,12 @@ class Order(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     order_number = Column(String(50), unique=True, index=True, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True) # invité possible
-    
-    # Coordonnées de livraison directes
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # invité possible
+
+    # Lien optionnel vers une adresse sauvegardée (préremplit les champs ci-dessous)
+    shipping_address_id = Column(Integer, ForeignKey("addresses.id"), nullable=True, index=True)
+
+    # Coordonnées de livraison directes (snapshot — toujours renseignées)
     customer_name = Column(String(200), nullable=False)
     customer_phone = Column(String(50), nullable=False)
     customer_email = Column(String(255), nullable=True)
@@ -90,6 +93,7 @@ class Payment(Base):
     amount = Column(Numeric(10, 2), nullable=False)
     status = Column(SQLEnum(PaymentStatus, name="payment_status"), default=PaymentStatus.PENDING, nullable=False)
     payment_date = Column(DateTime, nullable=True)
-    provider_payload = Column(Text, nullable=True) # Pour webhooks et logs sécurisés
+    # Données structurées du webhook/gateway (JSON au lieu de Text brut)
+    provider_payload = Column(JSON, nullable=True)
 
     order = relationship("Order", back_populates="payment")

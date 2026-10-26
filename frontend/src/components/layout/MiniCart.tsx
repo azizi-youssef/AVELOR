@@ -51,7 +51,7 @@ export function MiniCart({ open, onClose }: MiniCartProps) {
     <AnimatePresence>
       {open && (
         <div
-          className="fixed inset-0 z-60 flex"
+          className="fixed inset-0 z-100 flex"
           role="dialog"
           aria-modal="true"
           aria-label={isArabic ? "سلة التسوق" : "Votre panier"}
@@ -63,7 +63,7 @@ export function MiniCart({ open, onClose }: MiniCartProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity z-100"
             onClick={onClose}
             aria-hidden="true"
           />
@@ -76,9 +76,9 @@ export function MiniCart({ open, onClose }: MiniCartProps) {
             animate={{ x: 0 }}
             exit={{ x: isArabic ? "-100%" : "100%" }}
             transition={{ ease: [0.16, 1, 0.3, 1], duration: 0.4 }}
-            className={`fixed top-0 ${isArabic ? "left-0" : "right-0"} h-full w-full max-w-md bg-white shadow-2xl flex flex-col outline-none`}
+            className={`fixed top-0 ${isArabic ? "left-0" : "right-0"} h-full w-full max-w-md bg-white shadow-2xl flex flex-col outline-none z-101`}
           >
-        {/* En-tÃªte du mini-panier */}
+        {/* En-tête du mini-panier */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
           <div className="flex items-center gap-2">
             <ShoppingBag className="h-4 w-4" strokeWidth={1.5} />
@@ -94,7 +94,7 @@ export function MiniCart({ open, onClose }: MiniCartProps) {
           <button
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-black transition-colors"
-            aria-label={isArabic ? "Ø¥ØºÙ„Ø§Ù‚" : "Fermer"}
+            aria-label={isArabic ? "إغلاق" : "Fermer"}
           >
             <X className="h-4 w-4" strokeWidth={1.5} />
           </button>
@@ -249,7 +249,7 @@ export function MiniCart({ open, onClose }: MiniCartProps) {
               <div className="space-y-1">
                 <p className="text-[10px] text-neutral-500">
                   {isArabic
-                    ? `${(500 - subtotal).toLocaleString("fr-MA")} Ø¯Ø±Ù‡Ù… Ù„Ù„Ø­ØµÙˆÙ„ Ø¹Ù„Ù‰ ØªÙˆØµÙŠÙ„ Ù…Ø¬Ø§Ù†ÙŠ`
+                    ? `${(500 - subtotal).toLocaleString("fr-MA")} درهم للحصول على توصيل مجاني`
                     : `Plus que ${(500 - subtotal).toLocaleString("fr-MA")} MAD pour la livraison gratuite`}
                 </p>
                 <div className="h-1 w-full bg-neutral-100 rounded-full overflow-hidden">
@@ -276,7 +276,7 @@ export function MiniCart({ open, onClose }: MiniCartProps) {
                 onClick={onClose}
                 className="flex w-full items-center justify-center py-3 text-xs font-medium uppercase tracking-wider text-neutral-600 border border-neutral-200 hover:border-black hover:text-black transition-colors"
               >
-                {isArabic ? "Ø¹Ø±Ø¶ Ø§Ù„Ø³Ù„Ø© Ø§Ù„ÙƒØ§Ù…Ù„Ø©" : "Voir le panier complet"}
+                {isArabic ? "عرض السلة الكاملة" : "Voir le panier complet"}
               </Link>
             </div>
           </div>
